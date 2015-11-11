@@ -74,6 +74,9 @@ gulp.task('less', ['clean'], function(){
 });
 
 gulp.task('sass', ['clean'], function() {
+    if(!config.sass) {
+        return;
+    }
     return gulp.src(config.sass.src, {base: '.'})
         .pipe(sass({outputStyle: args.target == 'build:release' ? 'compress' : 'nested'}))
         .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : '.'));
