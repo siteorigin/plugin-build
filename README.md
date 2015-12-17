@@ -5,7 +5,7 @@ There are few steps necessary to prepare a plugin for release on the WordPress.o
 1. [Download](https://nodejs.org/download/) and install Node.js and npm.
 2. Install gulp using `npm install -g gulp`.
 3. In the plugin folder, ensure the plugin-build repository has been added as a submodule in a folder called 'build' and is up to date. This can be done using `git submodule add git@github.com:siteorigin/plugin-build.git build`
-4. In a terminal, navigate to the build directory in the theme and run `npm install`
+4. In a terminal, navigate to the build directory in the plugin and run `npm install`
 5. Get some coffee while npm installs the required packages.
 
 ## Configuring builds
@@ -41,15 +41,15 @@ The release task performs the following subtasks:
 
 Release task usage:
 
-`gulp build:release -v version`
+`gulp build:release -v {version}`
 
-Where `version` should be replaced with the required version number.
-For example, say the next version of the theme is 1.2.3:
+Where `{version}` should be replaced with the required version number.
+For example, say the next version of the plugin is 1.2.3:
 
-`gulp build:release -v 1.2.3`
+`gulp build:release -v {1.2.3}`
 
 The dev build task only has one subtask:
 
-1) Watch SASS files for changes and compile to CSS.
+1) Watch LESS and/or SASS files for changes and compile to CSS.
 
-This is simply to avoid having to manually recompile SASS files while working on them.
+This is simply to avoid having to manually recompile LESS/SASS files while working on them.
