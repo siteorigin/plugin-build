@@ -11,6 +11,11 @@ var config = require('../build-config.js'),
     zip = require('gulp-zip'),
     path = require('path');
 
+var gutil = require('gulp-util');
+var source = require('vinyl-source-stream');
+var browserify = require('browserify');
+
+
 var args = {};
 if(process.argv.length > 2) {
     var arr = process.argv.slice(2);
@@ -90,7 +95,18 @@ gulp.task('concat', ['clean'], function () {
 
 });
 
-gulp.task('minify', ['concat'], function () {
+gulp.task( 'browserify', [ 'clean' ], function(){
+    var b = browserify('./js/siteorigin-panels/main.js')
+        .bundle()
+        .on('error', function(e){
+            gutil.log( e );
+        })
+        .pipe(source('siteorigin-panels.js'))
+        .pipe(gulp.dest('./js/'));
+
+} );
+
+gulp.task('minify', ['concat', 'browserify'], function () {
     return gulp.src(config.js.src, {base: '.'})
         // This will output the non-minified version
         .pipe(gulp.dest('tmp'))
