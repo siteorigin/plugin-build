@@ -95,14 +95,16 @@ gulp.task('concat', ['clean'], function () {
 
 });
 
-gulp.task( 'browserify', [ 'clean' ], function(){
-    var b = browserify('./js/siteorigin-panels/main.js')
+gulp.task( 'browserify', [ ], function(){
+    if( typeof config.browserify === undefined ) return;
+
+    var b = browserify( config.browserify.src )
         .bundle()
         .on('error', function(e){
             gutil.log( e );
         })
-        .pipe(source('siteorigin-panels.js'))
-        .pipe(gulp.dest('./js/'));
+        .pipe(source(config.browserify.fileName))
+        .pipe(gulp.dest(config.browserify.dest));
 
 } );
 
@@ -133,10 +135,15 @@ gulp.task('build:release', ['move'], function () {
         .pipe(gulp.dest(outDir));
 });
 
-gulp.task('build:dev', ['css'], function () {
+gulp.task('build:dev', [ 'css', 'browserify' ], function () {
     console.log('Watching CSS files...');
     var cssSrc = config.less.src.concat(config.sass.src);
     gulp.watch(cssSrc, ['css']);
+
+    if( typeof config.browserify !== 'undefined' ) {
+        console.log('Watching Browserify files...');
+        gulp.watch(config.browserify.watchFiles, ['browserify']);
+    }
 });
 
 gulp.task('default', ['build:release'], function () {
