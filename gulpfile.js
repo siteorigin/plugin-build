@@ -11,6 +11,11 @@ var config = require('../build-config.js'),
     zip = require('gulp-zip'),
     path = require('path');
 
+var gutil = require('gulp-util');
+var source = require('vinyl-source-stream');
+var browserify = require('browserify');
+
+
 var args = {};
 if(process.argv.length > 2) {
     var arr = process.argv.slice(2);
@@ -90,7 +95,20 @@ gulp.task('concat', ['clean'], function () {
 
 });
 
-gulp.task('minify', ['concat'], function () {
+gulp.task( 'browserify', [ ], function(){
+    if( typeof config.browserify === undefined ) return;
+
+    var b = browserify( config.browserify.src )
+        .bundle()
+        .on('error', function(e){
+            gutil.log( e );
+        })
+        .pipe(source(config.browserify.fileName))
+        .pipe(gulp.dest(config.browserify.dest));
+
+} );
+
+gulp.task('minify', ['concat', 'browserify'], function () {
     return gulp.src(config.js.src, {base: '.'})
         // This will output the non-minified version
         .pipe(gulp.dest('tmp'))
@@ -117,10 +135,15 @@ gulp.task('build:release', ['move'], function () {
         .pipe(gulp.dest(outDir));
 });
 
-gulp.task('build:dev', ['css'], function () {
+gulp.task('build:dev', [ 'css', 'browserify' ], function () {
     console.log('Watching CSS files...');
     var cssSrc = config.less.src.concat(config.sass.src);
     gulp.watch(cssSrc, ['css']);
+
+    if( typeof config.browserify !== 'undefined' ) {
+        console.log('Watching Browserify files...');
+        gulp.watch(config.browserify.watchFiles, ['browserify']);
+    }
 });
 
 gulp.task('default', ['build:release'], function () {
