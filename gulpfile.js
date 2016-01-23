@@ -96,7 +96,9 @@ gulp.task('concat', ['clean'], function () {
 });
 
 gulp.task( 'browserify', [ ], function(){
-    if( typeof config.browserify === undefined ) return;
+    if( typeof config.browserify === 'undefined' ) {
+        return;
+    }
 
     var b = browserify( config.browserify.src )
         .bundle()
