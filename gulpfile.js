@@ -1,20 +1,19 @@
-var config = require('../build-config.js'),
-    gulp = require('gulp'),
-    wpPot = require('gulp-wp-pot'),
-    sort = require('gulp-sort'),
-    del = require('del'),
-    rename = require('gulp-rename'),
-    replace = require('gulp-replace'),
-    sass = require('gulp-sass'),
-    less = require('gulp-less'),
-    uglify = require('gulp-uglify'),
-    zip = require('gulp-zip'),
-    path = require('path');
-
+var config = require('../build-config.js');
+var gulp = require('gulp');
+var wpPot = require('gulp-wp-pot');
+var sort = require('gulp-sort');
+var del = require('del');
+var rename = require('gulp-rename');
+var replace = require('gulp-replace');
+var sass = require('gulp-sass');
+var less = require('gulp-less');
+var uglify = require('gulp-uglify');
+var zip = require('gulp-zip');
+var path = require('path');
 var gutil = require('gulp-util');
 var source = require('vinyl-source-stream');
 var browserify = require('browserify');
-
+var gulpFilter = require('gulp-filter');
 
 var args = {};
 if(process.argv.length > 2) {
@@ -28,14 +27,16 @@ if(process.argv.length > 2) {
     }
 }
 
-//Change current working directory to theme root directory.
+//Change current working directory to plugin root directory.
 process.chdir('..');
 
 var slug = config.slug;
 var outDir = args.target == 'build:dev' ? '.' : 'dist';
-if( args.target == 'build:dev') args.v = 'dev';
+var version = args.v;
+if( args.target == 'build:dev') version = 'dev';
 
 var jsMinSuffix = config.jsMinSuffix;
+var verSuffix = typeof version === 'undefined' ? '' : '-'+version.replace(/\./g, '');
 
 gulp.task('clean', function () {
     if( outDir != '.') {
@@ -59,16 +60,16 @@ gulp.task('i18n', ['clean'], function() {
 });
 
 gulp.task('version', ['clean'], function() {
-    if(typeof args.v == "undefined") {
+    if(typeof version == "undefined") {
         console.log("version task requires version number argument.");
         console.log("E.g. gulp release 1.2.3");
         return;
     }
     return gulp.src(config.version.src)
-        .pipe(replace(/(Stable tag:).*/, '$1 '+args.v))
-        .pipe(replace(/(Version:).*/, '$1 '+args.v))
-        .pipe(replace(/(define\(\s*'[A-Z_]+_VERSION',\s*').*('\s*\);)/, '$1'+args.v+'$2'))
-        .pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
+        .pipe(replace(/(Stable tag:).*/, '$1 '+version))
+        .pipe(replace(/(Version:).*/, '$1 '+version))
+        .pipe(replace(/(define\(\s*'[A-Z_]+_VERSION',\s*').*('\s*\);)/, '$1'+version+'$2'))
+        .pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + verSuffix + jsMinSuffix + '$2'))
         .pipe(gulp.dest('tmp'));
 });
 
@@ -111,12 +112,16 @@ gulp.task( 'browserify', [ ], function(){
 } );
 
 gulp.task('minify', ['concat', 'browserify'], function () {
+	var filter = gulpFilter(config.bust.src, {restore: true});
     return gulp.src(config.js.src, {base: '.'})
-        // This will output the non-minified version
-        .pipe(gulp.dest('tmp'))
-        .pipe(rename({ suffix: jsMinSuffix }))
-        .pipe(uglify())
-        .pipe(gulp.dest('tmp'));
+		.pipe(filter)
+		.pipe(rename({suffix: verSuffix}))
+		.pipe(filter.restore)
+		// This will output the non-minified version
+		.pipe(gulp.dest('tmp'))
+		.pipe(rename({ suffix: jsMinSuffix }))
+		.pipe(uglify())
+		.pipe(gulp.dest('tmp'));
 });
 
 gulp.task('copy', ['version', 'css', 'minify'], function () {
@@ -131,7 +136,7 @@ gulp.task('move', ['copy'], function () {
 
 gulp.task('build:release', ['move'], function () {
     del(['tmp']);
-    var versionNumber = args.hasOwnProperty('v') ? args.v : 'dev';
+    var versionNumber = args.hasOwnProperty('v') ? version : 'dev';
     return gulp.src(outDir + '/**/*')
         .pipe(zip(slug + '.' + versionNumber + '.zip'))
         .pipe(gulp.dest(outDir));
