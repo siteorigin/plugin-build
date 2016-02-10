@@ -36,7 +36,7 @@ var version = args.v;
 if( args.target == 'build:dev') version = 'dev';
 
 var jsMinSuffix = config.jsMinSuffix;
-var verSuffix = typeof version === 'undefined' ? '' : '-'+version.replace(/\./g, '');
+var verSuffix = typeof version === 'undefined' ? '' : '-'+version.split('.').splice(0,2).join('');
 
 gulp.task('clean', function () {
     if( outDir != '.') {
@@ -69,7 +69,8 @@ gulp.task('version', ['clean'], function() {
         .pipe(replace(/(Stable tag:).*/, '$1 '+version))
         .pipe(replace(/(Version:).*/, '$1 '+version))
         .pipe(replace(/(define\(\s*'[A-Z_]+_VERSION',\s*').*('\s*\);)/, '$1'+version+'$2'))
-        .pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + verSuffix + jsMinSuffix + '$2'))
+        .pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
+        .pipe(replace(/(define\(\s*'[A-Z_]+_VERSION_SUFFIX',\s*').*('\s*\);)/, '$1' + verSuffix + '$2'))
         .pipe(gulp.dest('tmp'));
 });
 
