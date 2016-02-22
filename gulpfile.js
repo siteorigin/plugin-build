@@ -14,6 +14,7 @@ var gutil = require('gulp-util');
 var source = require('vinyl-source-stream');
 var browserify = require('browserify');
 var gulpFilter = require('gulp-filter');
+var moment = require('moment');
 
 var args = {};
 if(process.argv.length > 2) {
@@ -67,6 +68,7 @@ gulp.task('version', ['clean'], function() {
     }
     return gulp.src(config.version.src)
         .pipe(replace(/(Stable tag:).*/, '$1 '+version))
+        .pipe(replace(/(Build time:).*/, '$1 '+moment(Date.now()).format()))
         .pipe(replace(/(Version:).*/, '$1 '+version))
         .pipe(replace(/(define\(\s*'[A-Z_]+_VERSION',\s*').*('\s*\);)/, '$1'+version+'$2'))
         .pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
