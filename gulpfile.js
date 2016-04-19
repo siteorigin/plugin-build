@@ -28,6 +28,16 @@ if(process.argv.length > 2) {
     }
 }
 
+var catchDevErrors = function (plugin) {
+    if (args.target == 'build:dev') {
+        plugin.on('error', function (error) {
+            gutil.log(error);
+            plugin.emit('end');
+        });
+    }
+    return plugin;
+};
+
 //Change current working directory to plugin root directory.
 process.chdir('..');
 
@@ -78,7 +88,7 @@ gulp.task('version', ['clean'], function() {
 
 gulp.task('less', ['clean'], function(){
     return gulp.src(config.less.src, {base: '.'})
-        .pipe(less({paths: config.less.include, compress: args.target == 'build:release'}))
+        .pipe(catchDevErrors(less({paths: config.less.include, compress: args.target == 'build:release'})))
         .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : '.'));
 });
 
@@ -87,7 +97,7 @@ gulp.task('sass', ['clean'], function() {
         return;
     }
     return gulp.src(config.sass.src, {base: '.'})
-        .pipe(sass({outputStyle: args.target == 'build:release' ? 'compress' : 'nested'}))
+        .pipe(catchDevErrors(sass({outputStyle: args.target == 'build:release' ? 'compress' : 'nested'})))
         .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : '.'));
 });
 
