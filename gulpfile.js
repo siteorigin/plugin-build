@@ -156,9 +156,11 @@ gulp.task('build:release', ['move'], function () {
 });
 
 gulp.task('build:dev', [ 'css', 'browserify' ], function () {
-    console.log('Watching CSS files...');
-    var cssSrc = config.less.src.concat(config.sass.src);
-    gulp.watch(cssSrc, ['css']);
+    console.log('Watching LESS files...');
+    gulp.watch( config.less.src, ['less'] );
+
+    console.log('Watching SCSS files...');
+    gulp.watch( config.sass.src, ['sass'] );
 
     if( typeof config.browserify !== 'undefined' ) {
         console.log('Watching Browserify files...');
