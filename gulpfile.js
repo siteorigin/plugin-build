@@ -132,7 +132,7 @@ gulp.task('minify', ['concat', 'browserify'], function () {
         return;
     }
 
-	var filter = gulpFilter(config.bust.src, {restore: true});
+	var filter = gulpFilter( config.bust ? config.bust.src : [], { restore: true } );
     return gulp.src(config.js.src, {base: '.'})
 		.pipe(filter)
 		.pipe(rename({suffix: verSuffix}))
