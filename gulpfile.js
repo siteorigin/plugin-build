@@ -87,13 +87,16 @@ gulp.task('version', ['clean'], function() {
 });
 
 gulp.task('less', ['clean'], function(){
+    if( !config.less ) {
+        return;
+    }
     return gulp.src(config.less.src, {base: '.'})
         .pipe(catchDevErrors(less({paths: config.less.include, compress: args.target == 'build:release'})))
         .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : '.'));
 });
 
 gulp.task('sass', ['clean'], function() {
-    if(!config.sass) {
+    if( !config.sass ) {
         return;
     }
     return gulp.src(config.sass.src, {base: '.'})
@@ -125,6 +128,10 @@ gulp.task( 'browserify', [ ], function(){
 } );
 
 gulp.task('minify', ['concat', 'browserify'], function () {
+    if( !config.js ) {
+        return;
+    }
+
 	var filter = gulpFilter(config.bust.src, {restore: true});
     return gulp.src(config.js.src, {base: '.'})
 		.pipe(filter)
@@ -138,6 +145,10 @@ gulp.task('minify', ['concat', 'browserify'], function () {
 });
 
 gulp.task('copy', ['version', 'css', 'minify'], function () {
+    if( !config.copy ) {
+        return;
+    }
+
     return gulp.src(config.copy.src, {base: '.'})
         .pipe(gulp.dest('tmp'));
 });
