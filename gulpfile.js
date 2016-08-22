@@ -108,10 +108,6 @@ gulp.task('css', ['less', 'sass'], function () {
 
 });
 
-gulp.task('concat', ['clean'], function () {
-
-});
-
 gulp.task( 'browserify', [ ], function(){
     if( typeof config.browserify === 'undefined' ) {
         return;
@@ -127,7 +123,7 @@ gulp.task( 'browserify', [ ], function(){
 
 } );
 
-gulp.task('minify', ['concat', 'browserify'], function () {
+gulp.task('minify', ['browserify'], function () {
     if( !config.js ) {
         return;
     }
