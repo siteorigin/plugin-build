@@ -113,13 +113,26 @@ gulp.task( 'browserify', [ ], function(){
         return;
     }
 
-    var b = browserify( config.browserify.src )
-        .bundle()
-        .on('error', function(e){
-            gutil.log( e );
-        })
-        .pipe(source(config.browserify.fileName))
-        .pipe(gulp.dest(config.browserify.dest));
+    var runBrowserify = function( browserifyConfig ){
+	    browserify( browserifyConfig.src )
+		    .bundle()
+		    .on('error', function(e){
+			    gutil.log( e );
+		    })
+		    .pipe( source( browserifyConfig.fileName ) )
+		    .pipe( gulp.dest( browserifyConfig.dest ) );
+    };
+
+    if( Array.isArray( config.browserify ) ) {
+	    for( i = 0; i < config.browserify.length; i++ ) {
+		    runBrowserify( config.browserify[i] );
+	    }
+    }
+    else {
+	    runBrowserify( config.browserify );
+    }
+
+
 
 } );
 
@@ -171,7 +184,19 @@ gulp.task('build:dev', [ 'css', 'browserify' ], function () {
 
     if( typeof config.browserify !== 'undefined' ) {
         console.log('Watching Browserify files...');
-        gulp.watch(config.browserify.watchFiles, ['browserify']);
+
+	    var browserifyWatch = [];
+	    if( Array.isArray( config.browserify ) ) {
+		    for( i = 0; i < config.browserify.length; i++ ) {
+			    browserifyWatch.push( config.browserify[i].watchFiles );
+		    }
+	    }
+	    else {
+		    browserifyWatch.push( config.browserify.watchFiles );
+	    }
+
+
+        gulp.watch( browserifyWatch, ['browserify'] );
     }
 });
 
