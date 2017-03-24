@@ -52,7 +52,7 @@ var verSuffix = typeof version === 'undefined' ? '' : '-'+version.split('.').spl
 gulp.task('clean', function () {
     if( outDir != '.') {
         console.log('Deleting output directory: ' + outDir);
-        del([outDir]);
+        del( [outDir] );
     }
 });
 
@@ -86,7 +86,7 @@ gulp.task('version', ['clean'], function() {
         .pipe(gulp.dest('tmp'));
 });
 
-gulp.task('less', ['clean'], function(){
+gulp.task('less', [], function(){
     if( !config.less ) {
         return;
     }
@@ -95,7 +95,7 @@ gulp.task('less', ['clean'], function(){
         .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : '.'));
 });
 
-gulp.task('sass', ['clean'], function() {
+gulp.task('sass', [], function() {
     if( !config.sass ) {
         return;
     }
@@ -167,7 +167,7 @@ gulp.task('move', ['copy'], function () {
         .pipe(gulp.dest(outDir + '/'+slug));
 });
 
-gulp.task('build:release', ['move'], function () {
+gulp.task('build:release', ['clean', 'move'], function () {
     del(['tmp']);
     var versionNumber = args.hasOwnProperty('v') ? version : 'dev';
     return gulp.src(outDir + '/**/*')
@@ -175,7 +175,7 @@ gulp.task('build:release', ['move'], function () {
         .pipe(gulp.dest(outDir));
 });
 
-gulp.task('build:dev', [ 'css', 'browserify' ], function () {
+gulp.task('build:dev', [ 'clean', 'css', 'browserify' ], function () {
     console.log('Watching LESS files...');
     gulp.watch( config.less.src, ['less'] );
 
