@@ -15,17 +15,11 @@ var source = require('vinyl-source-stream');
 var browserify = require('browserify');
 var gulpFilter = require('gulp-filter');
 var moment = require('moment');
+var yargs = require('yargs');
 
-var args = {};
-if(process.argv.length > 2) {
-    var arr = process.argv.slice(2);
-    args.target = arr[0];
-    for (var i = 0; i < arr.length; i++) {
-        var argName = arr[i];
-        if(argName.match(/-\w+/i)) {
-            args[argName.slice(1)] = arr[i + 1];
-        }
-    }
+var args = yargs.argv;
+if(args.hasOwnProperty( '_' ) ) {
+	args.target = args._[0];
 }
 
 var catchDevErrors = function (plugin) {
@@ -54,20 +48,6 @@ gulp.task('clean', function () {
         console.log('Deleting output directory: ' + outDir);
         del( [outDir] );
     }
-});
-
-gulp.task('i18n', ['clean'], function() {
-    return gulp.src('**/*.php')
-        .pipe(sort())
-        .pipe(wpPot( {
-            domain: slug,
-            destFile: slug + '.pot',
-            package: slug,
-            bugReport: 'http://www.siteorigin.com',
-            lastTranslator: 'SiteOrigin <support@siteorigin.com>',
-            team: 'SiteOrigin <support@siteorigin.com>'
-        } ))
-        .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : 'languages'));
 });
 
 gulp.task('version', ['clean'], function() {
@@ -162,7 +142,22 @@ gulp.task('copy', ['version', 'css', 'minify'], function () {
         .pipe(gulp.dest('tmp'));
 });
 
-gulp.task('move', ['copy'], function () {
+gulp.task('i18n', ['copy'], function() {
+	var tmpDir = args.target == 'build:release' ? 'tmp/' : '';
+	return gulp.src(tmpDir + '**/*.php')
+		.pipe(sort())
+		.pipe(wpPot( {
+			domain: slug,
+			destFile: slug + '.pot',
+			package: slug,
+			bugReport: 'http://www.siteorigin.com',
+			lastTranslator: 'SiteOrigin <support@siteorigin.com>',
+			team: 'SiteOrigin <support@siteorigin.com>'
+		} ))
+		.pipe(gulp.dest(tmpDir + 'languages'));
+});
+
+gulp.task('move', ['i18n'], function () {
     return gulp.src('tmp/**')
         .pipe(gulp.dest(outDir + '/'+slug));
 });
