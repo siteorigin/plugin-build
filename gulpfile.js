@@ -154,7 +154,7 @@ gulp.task('i18n', ['copy'], function() {
 			lastTranslator: 'SiteOrigin <support@siteorigin.com>',
 			team: 'SiteOrigin <support@siteorigin.com>'
 		} ))
-		.pipe(gulp.dest(tmpDir + 'languages'));
+		.pipe(gulp.dest(tmpDir + 'lang'));
 });
 
 gulp.task('move', ['i18n'], function () {
