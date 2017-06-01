@@ -23,7 +23,7 @@ if(args.hasOwnProperty( '_' ) ) {
 }
 
 var catchDevErrors = function (plugin) {
-    if (args.target == 'build:dev') {
+    if (args.target === 'build:dev') {
         plugin.on('error', function (error) {
             gutil.log(error);
             plugin.emit('end');
@@ -36,22 +36,22 @@ var catchDevErrors = function (plugin) {
 process.chdir('..');
 
 var slug = config.slug;
-var outDir = args.target == 'build:dev' ? '.' : 'dist';
+var outDir = args.target === 'build:dev' ? '.' : 'dist';
 var version = args.v;
-if( args.target == 'build:dev') version = 'dev';
+if( args.target === 'build:dev') version = 'dev';
 
 var jsMinSuffix = config.jsMinSuffix;
-var verSuffix = typeof version === 'undefined' ? '' : '-'+version.split('.').splice(0,2).join('');
+var verSuffix = typeof version === 'undefined' ? '' : '-' + version.toString().split('.').splice(0,2).join('');
 
 gulp.task('clean', function () {
-    if( outDir != '.') {
+    if( outDir !== '.') {
         console.log('Deleting output directory: ' + outDir);
         del( [outDir] );
     }
 });
 
 gulp.task('version', ['clean'], function() {
-    if(typeof version == "undefined") {
+    if(typeof version === "undefined") {
         console.log("version task requires version number argument.");
         console.log("E.g. gulp release 1.2.3");
         return;
