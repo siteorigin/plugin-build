@@ -41,7 +41,7 @@ var version = args.v;
 if( args.target === 'build:dev') version = 'dev';
 
 var jsMinSuffix = config.jsMinSuffix;
-var verSuffix = typeof version === 'undefined' ? '' : '-' + version.toString().split('.').splice(0,2).join('');
+var verSuffix = typeof version === 'undefined' ? '' : '-' + version.toString().split( '.' ).splice( 0, 3 ).join( '' );
 
 gulp.task('clean', function () {
     if( outDir !== '.') {
