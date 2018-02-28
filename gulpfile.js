@@ -1,5 +1,6 @@
 var config = require('../build-config.js');
 var gulp = require('gulp');
+var gulpif = require( 'gulp-if' );
 var wpPot = require('gulp-wp-pot');
 var sort = require('gulp-sort');
 var del = require('del');
@@ -8,8 +9,8 @@ var replace = require('gulp-replace');
 var sass = require('gulp-sass');
 var less = require('gulp-less');
 var uglify = require('gulp-uglify');
+var cssnano = require( 'gulp-cssnano' );
 var zip = require('gulp-zip');
-var path = require('path');
 var gutil = require('gulp-util');
 var source = require('vinyl-source-stream');
 var browserify = require('browserify');
@@ -62,6 +63,7 @@ gulp.task('version', ['clean'], function() {
         .pipe(replace(/(Version:).*/, '$1 '+version))
         .pipe(replace(/(define\(\s*'[A-Z_]+_VERSION',\s*').*('\s*\);)/, '$1'+version+'$2'))
         .pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
+        .pipe(replace(/(define\(\s*'[A-Z_]+_CSS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
         .pipe(replace(/(define\(\s*'[A-Z_]+_VERSION_SUFFIX',\s*').*('\s*\);)/, '$1' + verSuffix + '$2'))
         .pipe(gulp.dest('tmp'));
 });
@@ -71,8 +73,8 @@ gulp.task('less', [], function(){
         return;
     }
     return gulp.src(config.less.src, {base: '.'})
-        .pipe(catchDevErrors(less({paths: config.less.include, compress: args.target == 'build:release'})))
-        .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : '.'));
+        .pipe(catchDevErrors(less({paths: config.less.include, compress: args.target === 'build:release'})))
+        .pipe(gulp.dest(args.target === 'build:release' ? 'tmp' : '.'));
 });
 
 gulp.task('sass', [], function() {
@@ -80,8 +82,8 @@ gulp.task('sass', [], function() {
         return;
     }
     return gulp.src(config.sass.src, {base: '.'})
-        .pipe(catchDevErrors(sass({outputStyle: args.target == 'build:release' ? 'compress' : 'nested'})))
-        .pipe(gulp.dest(args.target == 'build:release' ? 'tmp' : '.'));
+        .pipe(catchDevErrors(sass({outputStyle: args.target === 'build:release' ? 'compress' : 'nested'})))
+        .pipe(gulp.dest(args.target === 'build:release' ? 'tmp' : '.'));
 });
 
 gulp.task('css', ['less', 'sass'], function () {
@@ -111,12 +113,22 @@ gulp.task( 'browserify', [ ], function(){
     else {
 	    runBrowserify( config.browserify );
     }
-
-
-
 } );
 
-gulp.task('minify', ['browserify'], function () {
+gulp.task( 'minifyCss', [ 'less', 'sass' ], function () {
+	if ( ! config.css ) {
+		return;
+	}
+	var cssSrc = config.css.src;
+	return gulp.src( cssSrc, { base: '.' } )
+	// This will output the non-minified version
+	.pipe( gulpif( args.target === 'build:release', gulp.dest( 'tmp' ) ) )
+	.pipe( rename( { suffix: '.min' } ) )
+	.pipe( cssnano( { zindex: false, reduceIdents: false } ) )
+	.pipe( gulp.dest( args.target === 'build:release' ? 'tmp' : '.' ) );
+} );
+
+gulp.task('minifyJs', ['browserify'], function () {
     if( !config.js ) {
         return;
     }
@@ -133,7 +145,7 @@ gulp.task('minify', ['browserify'], function () {
 		.pipe(gulp.dest('tmp'));
 });
 
-gulp.task('copy', ['version', 'css', 'minify'], function () {
+gulp.task('copy', ['version', 'minifyCss', 'minifyJs'], function () {
     if( !config.copy ) {
         return;
     }
@@ -143,7 +155,7 @@ gulp.task('copy', ['version', 'css', 'minify'], function () {
 });
 
 gulp.task('i18n', ['copy'], function() {
-	var tmpDir = args.target == 'build:release' ? 'tmp/' : '';
+	var tmpDir = args.target === 'build:release' ? 'tmp/' : '';
 	return gulp.src(tmpDir + '**/*.php')
 		.pipe(sort())
 		.pipe(wpPot( {
