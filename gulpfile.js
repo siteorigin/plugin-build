@@ -11,6 +11,7 @@ var less = require('gulp-less');
 var uglify = require('gulp-uglify');
 var cssnano = require( 'gulp-cssnano' );
 var zip = require('gulp-zip');
+var chmod = require('gulp-chmod');
 var gutil = require('gulp-util');
 var source = require('vinyl-source-stream');
 var browserify = require('browserify');
@@ -178,6 +179,40 @@ gulp.task('build:release', ['clean', 'move'], function () {
     del(['tmp']);
     var versionNumber = args.hasOwnProperty('v') ? version : 'dev';
     return gulp.src(outDir + '/**/*')
+		// Set folder permissions to 755 and file permissions to 644.
+		.pipe(chmod({
+			owner: {
+				read: true,
+				write: true,
+				execute: false,
+			},
+			group: {
+				read: true,
+				write: false,
+				execute: false,
+			},
+			others: {
+				read: true,
+				write: false,
+				execute: false,
+			},
+		}, {
+			owner: {
+				read: true,
+				write: true,
+				execute: true,
+			},
+			group: {
+				read: true,
+				write: false,
+				execute: true,
+			},
+			others: {
+				read: true,
+				write: false,
+				execute: true,
+			},
+		}))
         .pipe(zip(slug + '.' + versionNumber + '.zip'))
         .pipe(gulp.dest(outDir));
 });
