@@ -158,7 +158,7 @@ gulp.task( 'copy', [ 'version', 'minifyCss', 'minifyJs' ], function () {
 gulp.task( 'i18n', [ 'copy' ], function () {
 	var tmpDir = args.target === 'build:release' ? 'tmp/' : '';
 
-	return gulp.src( ['**/*.php', '!tmp/**/*.php'] )
+	return gulp.src( ['**/*.php', '!tmp/**/*.php', '!dist/**/*.php'] )
 	.pipe( sort() )
 	.pipe( wpPot( {
 		domain: slug,
