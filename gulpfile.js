@@ -162,13 +162,12 @@ gulp.task( 'i18n', [ 'copy' ], function () {
 	.pipe( sort() )
 	.pipe( wpPot( {
 		domain: slug,
-		destFile: slug + '.pot',
 		package: slug,
 		bugReport: 'http://www.siteorigin.com',
 		lastTranslator: 'SiteOrigin <support@siteorigin.com>',
 		team: 'SiteOrigin <support@siteorigin.com>'
 	} ) )
-	.pipe( gulp.dest( tmpDir + 'lang' ) );
+	.pipe( gulp.dest( tmpDir + 'lang/' + slug + '.pot' ) );
 } );
 
 gulp.task( 'move', [ 'i18n' ], function () {
