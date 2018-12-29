@@ -1,6 +1,6 @@
 {
-  "name": "siteorigin-panels",
-  "version": "2.1.2",
+  "name": "plugin-build",
+  "version": "0.6.0",
   "private": true,
   "dependencies": {},
   "devDependencies": {
@@ -18,9 +18,9 @@
     "gulp-sort": "^2.0.0",
     "gulp-uglify": "^3.0.1",
     "gulp-util": "^3.0.8",
-    "gulp-wp-pot": "^2.3.3",
+    "gulp-wp-pot": "github:siteorigin/gulp-wp-pot",
     "gulp-zip": "^4.2.0",
-    "moment": "^2.22.2",
+    "moment": "^2.23.0",
     "vinyl-source-stream": "^2.0.0",
     "yargs": "^12.0.5"
   }

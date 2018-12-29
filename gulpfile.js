@@ -156,14 +156,16 @@ gulp.task( 'copy', [ 'version', 'minifyCss', 'minifyJs' ], function () {
 } );
 
 gulp.task( 'i18n', [ 'copy' ], function () {
+	if ( !config.i18n ) {
+		return;
+	}
 	var tmpDir = args.target === 'build:release' ? 'tmp/' : '';
-
-	return gulp.src( ['**/*.php', '!tmp/**/*.php', '!dist/**/*.php'] )
+	return gulp.src( config.i18n.src )
 	.pipe( sort() )
 	.pipe( wpPot( {
 		domain: slug,
 		package: slug,
-		bugReport: 'http://www.siteorigin.com',
+		bugReport: 'http://www.siteorigin.com/thread',
 		lastTranslator: 'SiteOrigin <support@siteorigin.com>',
 		team: 'SiteOrigin <support@siteorigin.com>'
 	} ) )
