@@ -14,6 +14,7 @@ var zip = require( 'gulp-zip' );
 var chmod = require( 'gulp-chmod' );
 var gutil = require( 'gulp-util' );
 var source = require( 'vinyl-source-stream' );
+var babel = require( 'gulp-babel' );
 var browserify = require( 'browserify' );
 var gulpFilter = require( 'gulp-filter' );
 var moment = require( 'moment' );
@@ -91,7 +92,23 @@ gulp.task( 'css', [ 'less', 'sass' ], function () {
 
 } );
 
-gulp.task( 'browserify', [], function () {
+gulp.task( 'babel', function () {
+	if ( typeof config.babel === 'undefined' ) {
+		return;
+	}
+	
+	return gulp.src( config.babel.src, { base: '.' } )
+		.pipe( babel( {
+			cwd: 'build',
+			presets: [
+				"@babel/preset-env",
+				"@babel/preset-react",
+			],
+		} ) )
+		.pipe( gulp.dest( args.target === 'build:release' ? 'tmp' : '.' ) );
+} );
+
+gulp.task( 'browserify', [ 'babel' ], function () {
 	if ( typeof config.browserify === 'undefined' ) {
 		return;
 	}
@@ -226,6 +243,9 @@ gulp.task( 'build:dev', [ 'clean', 'css', 'browserify' ], function () {
 	
 	console.log( 'Watching SCSS files...' );
 	gulp.watch( config.sass.src, [ 'sass' ] );
+	
+	console.log( 'Watching JSX files...' );
+	gulp.watch( config.babel.src, [ 'babel' ] );
 	
 	if ( typeof config.browserify !== 'undefined' ) {
 		console.log( 'Watching Browserify files...' );
