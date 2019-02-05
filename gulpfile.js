@@ -244,8 +244,10 @@ gulp.task( 'build:dev', [ 'clean', 'css', 'browserify' ], function () {
 	console.log( 'Watching SCSS files...' );
 	gulp.watch( config.sass.src, [ 'sass' ] );
 	
-	console.log( 'Watching JSX files...' );
-	gulp.watch( config.babel.src, [ 'babel' ] );
+	if ( config.hasOwnProperty( 'babel' ) ) {
+		console.log( 'Watching JSX files...' );
+		gulp.watch( config.babel.src, [ 'babel' ] );
+	}
 	
 	if ( typeof config.browserify !== 'undefined' ) {
 		console.log( 'Watching Browserify files...' );
