@@ -8,7 +8,7 @@ var rename = require( 'gulp-rename' );
 var replace = require( 'gulp-replace' );
 var sass = require( 'gulp-sass' );
 var less = require( 'gulp-less' );
-var uglify = require( 'gulp-uglify' );
+var uglify = require( 'gulp-uglify-es' ).default;
 var cssnano = require( 'gulp-cssnano' );
 var zip = require( 'gulp-zip' );
 var chmod = require( 'gulp-chmod' );
@@ -96,7 +96,7 @@ gulp.task( 'babel', function () {
 	if ( typeof config.babel === 'undefined' ) {
 		return;
 	}
-	
+
 	return gulp.src( config.babel.src, { base: '.' } )
 		.pipe( babel( {
 			cwd: 'build',
@@ -112,7 +112,7 @@ gulp.task( 'browserify', [ 'babel' ], function () {
 	if ( typeof config.browserify === 'undefined' ) {
 		return;
 	}
-	
+
 	var runBrowserify = function ( browserifyConfig ) {
 		browserify( browserifyConfig.src )
 		.bundle()
@@ -122,7 +122,7 @@ gulp.task( 'browserify', [ 'babel' ], function () {
 		.pipe( source( browserifyConfig.fileName ) )
 		.pipe( gulp.dest( browserifyConfig.dest ) );
 	};
-	
+
 	if ( Array.isArray( config.browserify ) ) {
 		for ( i = 0; i < config.browserify.length; i++ ) {
 			runBrowserify( config.browserify[ i ] );
@@ -150,7 +150,7 @@ gulp.task( 'minifyJs', [ 'browserify' ], function () {
 	if ( !config.js ) {
 		return;
 	}
-	
+
 	var filter = gulpFilter( config.bust ? config.bust.src : [], { restore: true } );
 	return gulp.src( config.js.src, { base: '.' } )
 	.pipe( filter )
@@ -167,7 +167,7 @@ gulp.task( 'copy', [ 'version', 'minifyCss', 'minifyJs' ], function () {
 	if ( !config.copy ) {
 		return;
 	}
-	
+
 	return gulp.src( config.copy.src, { base: '.' } )
 	.pipe( gulp.dest( 'tmp' ) );
 } );
@@ -240,18 +240,18 @@ gulp.task( 'build:release', [ 'clean', 'move' ], function () {
 gulp.task( 'build:dev', [ 'clean', 'css', 'browserify' ], function () {
 	console.log( 'Watching LESS files...' );
 	gulp.watch( config.less.src, [ 'less' ] );
-	
+
 	console.log( 'Watching SCSS files...' );
 	gulp.watch( config.sass.src, [ 'sass' ] );
-	
+
 	if ( config.hasOwnProperty( 'babel' ) ) {
 		console.log( 'Watching JSX files...' );
 		gulp.watch( config.babel.src, [ 'babel' ] );
 	}
-	
+
 	if ( typeof config.browserify !== 'undefined' ) {
 		console.log( 'Watching Browserify files...' );
-		
+
 		var browserifyWatch = [];
 		if ( Array.isArray( config.browserify ) ) {
 			for ( i = 0; i < config.browserify.length; i++ ) {
@@ -261,8 +261,8 @@ gulp.task( 'build:dev', [ 'clean', 'css', 'browserify' ], function () {
 		else {
 			browserifyWatch.push( config.browserify.watchFiles );
 		}
-		
-		
+
+
 		gulp.watch( browserifyWatch, [ 'browserify' ] );
 	}
 } );
