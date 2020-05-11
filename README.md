@@ -4,8 +4,8 @@ There are few steps necessary to prepare a plugin for release on the WordPress.o
 ## Environment setup
 1. [Download](https://nodejs.org/download/) and install Node.js and npm.
 2. Install gulp using `npm install -g gulp`.
-3. In the plugin folder, ensure the plugin-build repository has been added as a submodule in a folder called 'build' and is up to date. This can be done using `git submodule add git@github.com:siteorigin/plugin-build.git build`
-4. In a terminal, navigate to the build directory in the plugin and run `npm install`
+3. In the plugin folder, ensure the plugin-build repository has been added as a submodule in a folder called 'build' and is up to date. This can be done using `git submodule add git@github.com:siteorigin/plugin-build.git build`. 
+4. In a terminal, navigate to the build directory in the plugin and run `npm install`. When using plugin-build in the [SiteOrigin CSS](https://github.com/siteorigin/so-css) plugin, `npm-install` should be run in both the SiteOrigin CSS plugin folder and the build folder.
 5. Get some coffee while npm installs the required packages.
 
 ## Configuring builds
