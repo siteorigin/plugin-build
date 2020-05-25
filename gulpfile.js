@@ -19,6 +19,8 @@ var browserify = require( 'browserify' );
 var gulpFilter = require( 'gulp-filter' );
 var moment = require( 'moment' );
 var yargs = require( 'yargs' );
+var request = require( 'request' );
+var fs = require( 'fs' );
 
 var args = yargs.argv;
 if ( args.hasOwnProperty( '_' ) ) {
@@ -269,4 +271,64 @@ gulp.task( 'build:dev', [ 'clean', 'css', 'browserify' ], function () {
 
 gulp.task( 'default', [ 'build:release' ], function () {
 
+} );
+
+
+gulp.task( 'updateGoogleFonts', function () {
+	if ( ! ( config.googleFonts && config.googleFonts.dest ) ) {
+		gutil.log( 'Missing googleFonts.dest config value. Need to know where to write the output file.' );
+		return;
+	}
+	console.log(args);
+	if ( ! args.apiKey ) {
+		gutil.log( 'Missing apiKey argument. Google Fonts requires an API Key.' );
+		return;
+	}
+	
+	var outFile = config.googleFonts.dest;
+	
+	var fontsUrl = 'https://www.googleapis.com/webfonts/v1/webfonts?sort=alpha&key=' + args.apiKey;
+	
+	request( {
+		url: fontsUrl,
+		json: true,
+	}, function ( error, response, body ) {
+		
+		if ( error ) {
+			gutil.log( 'An error occurred while fetching fonts:' );
+			gutil.log( error.message );
+			return;
+		}
+		
+		if ( body.error ) {
+			gutil.log( 'An error occurred while fetching fonts:' );
+			gutil.log( body.error.code.toString() + ' ' + body.error.message );
+			body.error.errors.forEach( function ( error ) {
+				gutil.log( error );
+			} );
+			return;
+		}
+		
+		var fontsString = '<?php\n\nreturn array(\n';
+		var fonts = body.items;
+		fonts.forEach( function( font ) {
+			fontsString += "\t'" + font.family + "' =>";
+			fontsString += "\n\t\tarray(\n";
+
+			font.variants.forEach( function ( variant, i ) {
+				fontsString += "\t\t\t" + i + " => '" + variant + "',\n"
+			} );
+			fontsString += "\t\t),\n";
+		} );
+		fontsString += ");";
+		
+		fs.writeFile( outFile, fontsString, function ( error ) {
+			if ( error ) {
+				gutil.log( error.message );
+				throw error;
+			}
+			gutil.log( 'Successfully updated Google Fonts.' );
+		} );
+	} );
+	
 } );
