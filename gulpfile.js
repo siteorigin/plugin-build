@@ -11,6 +11,7 @@ var less = require( 'gulp-less' );
 var uglify = require( 'gulp-uglify-es' ).default;
 var cssnano = require( 'gulp-cssnano' );
 var zip = require( 'gulp-zip' );
+var unzip = require( 'gulp-unzip' );
 var chmod = require( 'gulp-chmod' );
 var gutil = require( 'gulp-util' );
 var source = require( 'vinyl-source-stream' );
@@ -331,4 +332,59 @@ gulp.task( 'updateGoogleFonts', function () {
 		} );
 	} );
 	
+} );
+
+gulp.task( 'updateFontAwesome', function () {
+	if ( ! ( config.fontAwesome && config.fontAwesome.base ) ) {
+		gutil.log( 'Missing fontAwesome.base config value. Need to know where to write the output file.' );
+		return;
+	}
+	
+	request( 'https://github.com/FortAwesome/Font-Awesome/archive/master.zip' )
+	.pipe( fs.createWriteStream( 'master.zip' ) )
+	.on( 'finish', function() {
+		gulp.src( 'master.zip' )
+	    .pipe( unzip() )
+	    .pipe( gulp.dest( 'tmp' ) )
+	  	.on( 'end', function () {
+	  		del( [ 'master.zip' ] );
+
+			const fontAwesomeTmpDir = 'tmp/Font-Awesome-master/';
+			const fontAwesome = JSON.parse( fs.readFileSync( fontAwesomeTmpDir + 'metadata/icons.json' ) );
+
+			var fontsString = '<?php\n\nfunction siteorigin_widgets_icons_fontawesome_filter( $icons ){\n\treturn array_merge($icons, array(\n';
+			for ( const [ icon, iconProps ] of Object.entries( fontAwesome ) ) {
+				fontsString += `\t\t'${icon}' => array( 'unicode' => '&#x${iconProps.unicode};', 'styles' => array( `
+				for ( i in iconProps.styles ) {
+					fontsString += ( ( i > 0 ) ? ", '" : "'" ) + 'sow-fa' + iconProps.styles[i].charAt(0) + "'";
+				}
+				fontsString += ' ), ),\n';
+			}
+			fontsString += '\n\t));\n}\nadd_filter';
+
+			fs.readFile( config.fontAwesome.base + 'filter.php', 'utf8', function( error, data ) {
+				if ( error ) {
+					console.log( error.message );
+					throw error;
+				}
+
+				const editedFile = data.replace( /<\?php([\s\S]*?)add_filter/, fontsString );
+				fs.writeFile( config.fontAwesome.base + 'filter.php', editedFile, function ( error ) {
+					if ( error ) {
+						console.log( error.message );
+						throw error;
+					}
+					console.log( 'Successfully updated Font Awesome filter.php. Please manually add migration code for any removed icons. https://github.com/FortAwesome/Font-Awesome/blob/master/UPGRADING.md' );
+				} );
+			} );
+
+			gulp.src( fontAwesomeTmpDir + 'webfonts/*' )
+			.pipe( gulp.dest( config.fontAwesome.base + 'webfonts' ) )
+	  		.on( 'end', function () {
+				console.log( 'Successfully moved Font Awesome font files' );
+				del( [ 'tmp' ] );
+	  		} );
+
+	    } );
+	} )
 } );
