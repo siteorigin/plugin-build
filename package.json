@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "css": "^2.2.4",
+    "gulp-unzip": "^1.1.0",
     "path-sort": "^0.1.0"
   },
   "devDependencies": {
