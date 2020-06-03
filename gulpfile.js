@@ -378,6 +378,30 @@ gulp.task( 'updateFontAwesome', function () {
 				} );
 			} );
 
+			fs.readFile( fontAwesomeTmpDir + 'css/regular.css', 'utf8', function( error, data ) {
+				if ( error ) {
+					console.log( error.message );
+					throw error;
+				}
+
+				const newVersion = data.match( /Free ([\S]*?) by/ );
+				fs.readFile( config.fontAwesome.base + 'style.css', 'utf8', function( error, styleData ) {
+					if ( error ) {
+						console.log( error.message );
+						throw error;
+					}
+					const oldVersion = styleData.match( /Free ([\S]*?) by/ );
+					const newStyle = styleData.replace( oldVersion[1], newVersion[1] );
+					fs.writeFile( config.fontAwesome.base + 'style.css', newStyle, function ( error ) {
+						if ( error ) {
+							console.log( error.message );
+							throw error;
+						}
+						console.log( `Updating Font Awesome ${oldVersion[1]} to ${newVersion[1]}` );
+					} );
+				} );
+			} );
+
 			gulp.src( fontAwesomeTmpDir + 'webfonts/*' )
 			.pipe( gulp.dest( config.fontAwesome.base + 'webfonts' ) )
 	  		.on( 'end', function () {
