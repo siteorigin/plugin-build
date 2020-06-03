@@ -25,6 +25,7 @@
     "gulp-sass": "^4.0.2",
     "gulp-sort": "^2.0.0",
     "gulp-uglify-es": "^2.0.0",
+    "gulp-unzip": "^1.1.0",
     "gulp-util": "^3.0.8",
     "gulp-wp-pot": "github:siteorigin/gulp-wp-pot",
     "gulp-zip": "^4.2.0",
