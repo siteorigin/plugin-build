@@ -344,10 +344,10 @@ gulp.task( 'updateFontAwesome', function () {
 	.pipe( fs.createWriteStream( 'master.zip' ) )
 	.on( 'finish', function() {
 		gulp.src( 'master.zip' )
-	    .pipe( unzip() )
-	    .pipe( gulp.dest( 'tmp' ) )
-	  	.on( 'end', function () {
-	  		del( [ 'master.zip' ] );
+		.pipe( unzip() )
+		.pipe( gulp.dest( 'tmp' ) )
+		.on( 'end', function () {
+			del( [ 'master.zip' ] );
 
 			const fontAwesomeTmpDir = 'tmp/Font-Awesome-master/';
 			const fontAwesome = JSON.parse( fs.readFileSync( fontAwesomeTmpDir + 'metadata/icons.json' ) );
@@ -404,11 +404,11 @@ gulp.task( 'updateFontAwesome', function () {
 
 			gulp.src( fontAwesomeTmpDir + 'webfonts/*' )
 			.pipe( gulp.dest( config.fontAwesome.base + 'webfonts' ) )
-	  		.on( 'end', function () {
+			.on( 'end', function () {
 				console.log( 'Successfully moved Font Awesome font files' );
 				del( [ 'tmp' ] );
-	  		} );
+			} );
 
-	    } );
+		} );
 	} )
 } );
