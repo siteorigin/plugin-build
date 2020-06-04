@@ -339,7 +339,7 @@ gulp.task( 'updateFontAwesome', function () {
 		gutil.log( 'Missing fontAwesome.base config value. Need to know where to write the output file.' );
 		return;
 	}
-	
+
 	request( 'https://github.com/FortAwesome/Font-Awesome/archive/master.zip' )
 	.pipe( fs.createWriteStream( 'master.zip' ) )
 	.on( 'finish', function() {
