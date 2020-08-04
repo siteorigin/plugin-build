@@ -154,12 +154,7 @@ gulp.task( 'minifyJs', [ 'browserify' ], function () {
 		return;
 	}
 
-	var filter = gulpFilter( config.bust ? config.bust.src : [], { restore: true } );
 	return gulp.src( config.js.src, { base: '.' } )
-	.pipe( filter )
-	.pipe( rename( { suffix: verSuffix } ) )
-	.pipe( filter.restore )
-	// This will output the non-minified version
 	.pipe( gulp.dest( 'tmp' ) )
 	.pipe( rename( { suffix: jsMinSuffix } ) )
 	.pipe( uglify() )
