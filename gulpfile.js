@@ -123,7 +123,7 @@ gulp.task( 'browserify', [ 'babel' ], function () {
 			gutil.log( e );
 		} )
 		.pipe( source( browserifyConfig.fileName ) )
-		.pipe( gulp.dest( browserifyConfig.dest ) );
+		.pipe( gulp.dest( args.target === 'build:release' ? 'tmp/' + browserifyConfig.dest : browserifyConfig.dest ) );
 	};
 
 	if ( Array.isArray( config.browserify ) ) {
