@@ -117,7 +117,7 @@ gulp.task( 'browserify', [ 'babel' ], function () {
 	}
 
 	var runBrowserify = function ( browserifyConfig ) {
-		browserify( browserifyConfig.src )
+		return browserify( browserifyConfig.src )
 		.bundle()
 		.on( 'error', function ( e ) {
 			gutil.log( e );
@@ -128,11 +128,12 @@ gulp.task( 'browserify', [ 'babel' ], function () {
 
 	if ( Array.isArray( config.browserify ) ) {
 		for ( i = 0; i < config.browserify.length; i++ ) {
-			runBrowserify( config.browserify[ i ] );
+			var browserifyOutput = runBrowserify( config.browserify[ i ] );
 		}
+		return browserifyOutput;
 	}
 	else {
-		runBrowserify( config.browserify );
+		return runBrowserify( config.browserify );
 	}
 } );
 
