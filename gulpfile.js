@@ -155,7 +155,13 @@ gulp.task( 'minifyJs', [ 'browserify' ], function () {
 		return;
 	}
 
-	return gulp.src( config.js.src, { base: '.' } )
+	return gulp.src(
+		config.js.src,
+		{
+			base: '.',
+			ignore: '!(*.min)',
+		}
+	)
 	.pipe( gulp.dest( 'tmp' ) )
 	.pipe( rename( { suffix: jsMinSuffix } ) )
 	.pipe( uglify() )
