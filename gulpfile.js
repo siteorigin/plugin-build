@@ -336,7 +336,7 @@ gulp.task( 'updateFontAwesome', function () {
 		return;
 	}
 
-	request( 'https://github.com/FortAwesome/Font-Awesome/archive/master.zip' )
+	request( 'https://github.com/FortAwesome/Font-Awesome/archive/refs/heads/6.x.zip' )
 	.pipe( fs.createWriteStream( 'master.zip' ) )
 	.on( 'finish', function() {
 		gulp.src( 'master.zip' )
@@ -345,7 +345,7 @@ gulp.task( 'updateFontAwesome', function () {
 		.on( 'end', function () {
 			del( [ 'master.zip' ] );
 
-			const fontAwesomeTmpDir = 'tmp/Font-Awesome-master/';
+			const fontAwesomeTmpDir = 'tmp/Font-Awesome-6.x/';
 			const fontAwesome = JSON.parse( fs.readFileSync( fontAwesomeTmpDir + 'metadata/icons.json' ) );
 
 			var fontsString = '<?php\n\nfunction siteorigin_widgets_icons_fontawesome_filter( $icons ){\n\treturn array_merge($icons, array(\n';
@@ -370,7 +370,7 @@ gulp.task( 'updateFontAwesome', function () {
 						console.log( error.message );
 						throw error;
 					}
-					console.log( 'Successfully updated Font Awesome filter.php. Please manually add migration code for any removed icons. https://github.com/FortAwesome/Font-Awesome/blob/master/UPGRADING.md' );
+					console.log( 'Successfully updated Font Awesome filter.php. Please manually add migration code for any removed icons. https://fontawesome.com/docs/changelog/' );
 				} );
 			} );
 
