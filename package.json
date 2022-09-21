@@ -30,7 +30,7 @@
     "gulp-wp-pot": "github:siteorigin/gulp-wp-pot",
     "gulp-zip": "^4.2.0",
     "matched": "^4.0.0",
-    "moment": "^2.29.2",
+    "moment": "^2.29.4",
     "vinyl-source-stream": "^2.0.0",
     "yargs": "^13.3.0"
   },
