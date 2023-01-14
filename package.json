@@ -13,7 +13,7 @@
     "@babel/preset-react": "^7.8.3",
     "browserify": "^16.5.1",
     "del": "^5.1.0",
-    "gulp": "^3.9",
+    "gulp": "^4.0",
     "gulp-babel": "^8.0.0",
     "gulp-chmod": "^3.0.0",
     "gulp-cssnano": "^2.1.3",
