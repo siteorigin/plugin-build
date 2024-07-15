@@ -13,7 +13,7 @@ import { updateGoogleFonts } from './build-steps/update-google-fonts.js';
 import { lessTask, sassTask } from './build-steps/css-tasks.js';
 import { babelTask, browserifyTask } from './build-steps/js-tasks.js';
 import { minifyCss, minifyJs } from './build-steps/minify-tasks.js';
-import { clean, versionTask, copy, i18n, move, buildRelease } from './build-steps/utility-tasks.js';
+import { clean, versionTask, copy, i18n, move, buildRelease, cleanTmp } from './build-steps/utility-tasks.js';
 
 const require = createRequire(import.meta.url);
 
@@ -63,7 +63,8 @@ const buildProcess = series(
 	gulp.series(copy.bind(null, config)),
 	gulp.series(i18n.bind(null, config, args)),
 	gulp.series(move.bind(null, config, outDir)),
-	gulp.series(buildRelease.bind(null, config, outDir, version))
+	gulp.series(buildRelease.bind(null, config, outDir, version)),
+	cleanTmp  // This now uses the imported cleanTmp from utility-tasks.js
 );
 
 const errorHandler = (err) => {

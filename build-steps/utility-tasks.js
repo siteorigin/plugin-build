@@ -84,3 +84,8 @@ export const buildRelease = (config, outDir, version) => {
 		.pipe(gulpif(outDir === 'dist', zip(`${config.slug}.${versionNumber}.zip`)))
 		.pipe(dest(outDir));
 };
+
+export const cleanTmp = () => {
+	console.log('Cleaning up tmp directory...');
+	return deleteAsync(['tmp']);
+};
