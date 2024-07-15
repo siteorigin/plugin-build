@@ -133,7 +133,7 @@ const browserifyTask = () => {
 			.bundle()
 			.on('error', (e) => console.error(e))
 			.pipe(source(browserifyConfig.fileName))
-			.pipe(dest(browserifyConfig.dest));
+			.pipe(dest('tmp')); // Output directly to the tmp directory
 	};
 
 	if (Array.isArray(config.browserify)) {
@@ -157,15 +157,22 @@ const minifyCss = () => {
 
 // Minify JS task
 const minifyJs = () => {
-	if (!config.js || !config.js.src) {
-		console.log('No JS files to minify');
-		return Promise.resolve();
-	}
-	return src(config.js.src, { base: '.' })
+	console.log('Starting JS minification...');
+
+	// Combine regular JS and browserified JS
+	const jsFiles = [
+		...(config.js && config.js.src ? config.js.src : []),
+		'tmp/**/*.js'
+	];
+
+	return src(jsFiles, { base: '.' })
+		.pipe(gulpif(file => !file.path.includes('.min.js'), rename({ suffix: jsMinSuffix })))
+		.pipe(terser().on('error', (err) => {
+			console.error('Terser error:', err.toString());
+			this.emit('end');
+		}))
 		.pipe(dest('tmp'))
-		.pipe(rename({ suffix: jsMinSuffix }))
-		.pipe(terser())
-		.pipe(dest('tmp'));
+		.on('end', () => console.log('JS minification completed.'));
 };
 
 // Copy task
@@ -199,7 +206,8 @@ const i18n = () => {
 // Move task
 const move = () => {
 	const destDir = outDir === 'dist' ? `${outDir}/${config.slug}` : outDir;
-	return src('tmp/**')
+	console.log(`Moving files to ${destDir}...`);
+	return src('tmp/**/*', { base: 'tmp' })
 		.pipe(dest(destDir));
 };
 
