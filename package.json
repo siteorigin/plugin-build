@@ -1,6 +1,7 @@
 {
   "name": "plugin-build",
   "version": "0.6.0",
+  "type": "module",
   "private": true,
   "devDependencies": {
     "@babel/core": "^7.24.8",
@@ -20,19 +21,32 @@
     "gulp-replace": "^1.1.4",
     "gulp-sass": "^5.1.0",
     "gulp-sort": "^2.0.0",
-    "gulp-uglify-es": "^3.0.0",
+    "gulp-terser": "^2.1.0",
     "gulp-unzip": "^1.1.0",
     "gulp-util": "^3.0.8",
     "gulp-wp-pot": "^2.5.0",
     "gulp-zip": "^6.0.0",
     "matched": "^5.0.1",
     "moment": "^2.30.1",
+    "node-fetch": "^2.7.0",
     "path-sort": "^0.1.0",
     "vinyl-source-stream": "^2.0.0",
     "yargs": "^17.7.2"
   },
   "scripts": {
-    "preinstall": "npx npm-force-resolutions"
+    "preinstall": "npx npm-force-resolutions",
+    "build:release": "gulp buildRelease --release=$npm_config_release",
+    "build:dev": "gulp buildDev",
+    "clean": "gulp clean",
+    "version": "gulp version",
+    "css": "gulp css",
+    "js": "gulp js",
+    "minify": "gulp minify",
+    "copy": "gulp copy",
+    "i18n": "gulp i18n",
+    "move": "gulp move",
+    "updateGoogleFonts": "gulp updateGoogleFonts --apiKey=$npm_config_apiKey",
+    "updateFontAwesome": "gulp updateFontAwesome"
   },
   "resolutions": {
     "graceful-fs": "4.2.3"

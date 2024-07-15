@@ -1,32 +1,46 @@
-const { src, dest, series, parallel, watch } = require('gulp');
-const gulpif = require('gulp-if');
-const wpPot = require('gulp-wp-pot');
-const sort = require('gulp-sort');
-const del = require('del');
-const rename = require('gulp-rename');
-const replace = require('gulp-replace');
-const sass = require('gulp-sass')(require('sass'));
-const less = require('gulp-less');
-const uglify = require('gulp-uglify-es').default;
-const cssnano = require('gulp-cssnano');
-const zip = require('gulp-zip');
-const unzip = require('gulp-unzip');
-const chmod = require('gulp-chmod');
-const babel = require('gulp-babel');
-const browserify = require('browserify');
-const source = require('vinyl-source-stream');
-const gulpFilter = require('gulp-filter');
-const moment = require('moment');
-const yargs = require('yargs');
-const request = require('request');
-const fs = require('fs');
+import gulp from 'gulp';
+const { src, dest, series, parallel, watch } = gulp;
+import gulpif from 'gulp-if';
+import wpPot from 'gulp-wp-pot';
+import sort from 'gulp-sort';
+import { deleteAsync } from 'del';
+import rename from 'gulp-rename';
+import replace from 'gulp-replace';
+import sass from 'gulp-sass';
+import less from 'gulp-less';
+import terser from 'gulp-terser';
+import cssnano from 'gulp-cssnano';
+import zip from 'gulp-zip';
+import unzip from 'gulp-unzip';
+import chmod from 'gulp-chmod';
+import babel from 'gulp-babel';
+import browserify from 'browserify';
+import source from 'vinyl-source-stream';
+import gulpFilter from 'gulp-filter';
+import moment from 'moment';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import fetch from 'node-fetch';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const config = require('../build-config.js');
+const slug = config.slug; // Add this line
 
-const args = yargs.argv;
-const slug = config.slug;
-const outDir = args.outDir || (args.target === 'build:dev' ? '.' : 'dist');
-const version = args.v || (args.target === 'build:dev' ? 'dev' : undefined);
+// Change current working directory to plugin root directory
+process.chdir('..');
+
+const args = yargs(hideBin(process.argv)).argv;
+const outDir = args.outDir || (args._[0] === 'buildDev' ? '.' : 'dist');
+const version = args.release || (args._[0] === 'buildDev' ? 'dev' : undefined);
+
 const jsMinSuffix = config.jsMinSuffix;
 const verSuffix = version ? `-${version.split('.').slice(0, 3).join('')}` : '';
 
@@ -42,19 +56,20 @@ const catchDevErrors = (plugin) => {
 };
 
 // Clean task
-const clean = () => {
+const clean = async () => {
 	if (outDir === 'dist') {
 		console.log(`Deleting output directory: ${outDir}`);
-		return del([outDir]);
+		await deleteAsync([outDir]);
+	} else {
+		console.log(`Not deleting output directory: ${outDir}`);
 	}
-	return Promise.resolve();
 };
 
 // Version task
 const versionTask = () => {
 	if (typeof version === "undefined") {
 		console.log("version task requires version number argument.");
-		console.log("E.g. gulp release --v=1.2.3");
+		console.log("E.g. gulp release --release=1.2.3");
 		return Promise.resolve();
 	}
 	return src(config.version.src)
@@ -80,7 +95,8 @@ const lessTask = () => {
 
 // SASS task
 const sassTask = () => {
-	if (!config.sass) {
+	if (!config.sass || !config.sass.src || config.sass.src.length === 0) {
+		console.log('No SASS files to process');
 		return Promise.resolve();
 	}
 	return src(config.sass.src, { base: '.' })
@@ -89,7 +105,10 @@ const sassTask = () => {
 };
 
 // CSS task
-const css = parallel(lessTask, sassTask);
+const css = parallel(
+	config.less && config.less.src && config.less.src.length > 0 ? lessTask : (cb) => cb(),
+	config.sass && config.sass.src && config.sass.src.length > 0 ? sassTask : (cb) => cb()
+);
 
 // Babel task
 const babelTask = () => {
@@ -138,13 +157,14 @@ const minifyCss = () => {
 
 // Minify JS task
 const minifyJs = () => {
-	if (!config.js) {
+	if (!config.js || !config.js.src) {
+		console.log('No JS files to minify');
 		return Promise.resolve();
 	}
 	return src(config.js.src, { base: '.' })
 		.pipe(dest('tmp'))
 		.pipe(rename({ suffix: jsMinSuffix }))
-		.pipe(uglify())
+		.pipe(terser())
 		.pipe(dest('tmp'));
 };
 
@@ -159,32 +179,33 @@ const copy = () => {
 
 // i18n task
 const i18n = () => {
-	if (!config.i18n) {
+	if (!config.i18n || !config.slug) {
+		console.log('Missing i18n configuration or slug');
 		return Promise.resolve();
 	}
 	const tmpDir = args.target === 'build:release' ? 'tmp/' : '';
 	return src(config.i18n.src)
 		.pipe(sort())
 		.pipe(wpPot({
-			domain: slug,
-			package: slug,
+			domain: config.slug,
+			package: config.slug,
 			bugReport: 'http://www.siteorigin.com/thread',
 			lastTranslator: 'SiteOrigin <support@siteorigin.com>',
 			team: 'SiteOrigin <support@siteorigin.com>'
 		}))
-		.pipe(dest(`${tmpDir}lang/${slug}.pot`));
+		.pipe(dest(`${tmpDir}lang/${config.slug}.pot`));
 };
 
 // Move task
 const move = () => {
-	const dest = outDir === 'dist' ? `${outDir}/${slug}` : outDir;
+	const destDir = outDir === 'dist' ? `${outDir}/${config.slug}` : outDir;
 	return src('tmp/**')
-		.pipe(dest(dest));
+		.pipe(dest(destDir));
 };
 
 // Build release task
 const buildRelease = () => {
-	const versionNumber = args.hasOwnProperty('v') ? version : 'dev';
+	const versionNumber = args.hasOwnProperty('release') ? version : 'dev';
 	return src(`${outDir}/**/*`)
 		.pipe(chmod({
 			owner: { read: true, write: true, execute: false },
@@ -195,61 +216,61 @@ const buildRelease = () => {
 			group: { read: true, write: false, execute: true },
 			others: { read: true, write: false, execute: true }
 		}))
-		.pipe(gulpif(outDir === 'dist', zip(`${slug}.${versionNumber}.zip`)))
+		.pipe(gulpif(outDir === 'dist', zip(`${config.slug}.${versionNumber}.zip`)))
 		.pipe(dest(outDir));
 };
 
 // Build dev task
-const buildDev = () => {
-	console.log('Watching LESS files...');
-	watch(config.less.src, lessTask);
+const buildDev = (cb) => {
+	console.log('Building for development...');
 
-	console.log('Watching SCSS files...');
-	watch(config.sass.src, sassTask);
+	// Run initial builds
+	const initialBuild = parallel(css, babelTask, browserifyTask);
+	initialBuild(() => {
+		console.log('Initial build complete. Setting up watchers...');
 
-	if (config.hasOwnProperty('babel')) {
-		console.log('Watching JSX files...');
-		watch(config.babel.src, babelTask);
-	}
+		// Set up watchers
+		watch(config.less.src, lessTask);
+		watch(config.sass.src, sassTask);
 
-	if (typeof config.browserify !== 'undefined') {
-		console.log('Watching Browserify files...');
-		const browserifyWatch = Array.isArray(config.browserify)
-			? config.browserify.flatMap(b => b.watchFiles)
-			: config.browserify.watchFiles;
-		watch(browserifyWatch, browserifyTask);
-	}
+		if (config.hasOwnProperty('babel')) {
+			watch(config.babel.src, babelTask);
+		}
+
+		if (typeof config.browserify !== 'undefined') {
+			const browserifyWatch = Array.isArray(config.browserify)
+				? config.browserify.flatMap(b => b.watchFiles)
+				: config.browserify.watchFiles;
+			watch(browserifyWatch, browserifyTask);
+		}
+
+		cb();
+	});
 };
 
 // Update Google Fonts task
-const updateGoogleFonts = (cb) => {
+const updateGoogleFonts = async () => {
 	if (!(config.googleFonts && config.googleFonts.dest)) {
 		console.log('Missing googleFonts.dest config value. Need to know where to write the output file.');
-		return cb();
+		return;
 	}
 	if (!args.apiKey) {
 		console.log('Missing apiKey argument. Google Fonts requires an API Key.');
-		return cb();
+		return;
 	}
 
 	const outFile = config.googleFonts.dest;
 	const fontsUrl = `https://www.googleapis.com/webfonts/v1/webfonts?sort=alpha&key=${args.apiKey}`;
 
-	request({
-		url: fontsUrl,
-		json: true,
-	}, (error, response, body) => {
-		if (error) {
-			console.log('An error occurred while fetching fonts:');
-			console.log(error.message);
-			return cb(error);
-		}
+	try {
+		const response = await fetch(fontsUrl);
+		const body = await response.json();
 
-		if (body.error) {
+		if (response.status !== 200) {
 			console.log('An error occurred while fetching fonts:');
-			console.log(`${body.error.code.toString()} ${body.error.message}`);
+			console.log(`${body.error.code} ${body.error.message}`);
 			body.error.errors.forEach(error => console.log(error));
-			return cb(new Error('Google Fonts API error'));
+			throw new Error('Google Fonts API error');
 		}
 
 		let fontsString = '<?php\n\nreturn array(\n';
@@ -262,101 +283,127 @@ const updateGoogleFonts = (cb) => {
 		});
 		fontsString += ');';
 
-		fs.writeFile(outFile, fontsString, error => {
-			if (error) {
-				console.log(error.message);
-				return cb(error);
-			}
-			console.log('Successfully updated Google Fonts.');
-			cb();
-		});
-	});
+		await fs.promises.writeFile(outFile, fontsString);
+		console.log('Successfully updated Google Fonts.');
+	} catch (error) {
+		console.log('An error occurred while fetching fonts:');
+		console.log(error.message);
+	}
 };
 
 // Update Font Awesome task
-const updateFontAwesome = () => {
+const updateFontAwesome = async () => {
 	if (!(config.fontAwesome && config.fontAwesome.base)) {
 		console.log('Missing fontAwesome.base config value. Need to know where to write the output file.');
-		return Promise.resolve();
+		return;
 	}
 
-	return new Promise((resolve, reject) => {
-		request('https://github.com/FortAwesome/Font-Awesome/archive/refs/heads/6.x.zip')
-			.pipe(fs.createWriteStream('master.zip'))
-			.on('finish', () => {
-				src('master.zip')
-					.pipe(unzip())
-					.pipe(dest('tmp'))
-					.on('end', () => {
-						del(['master.zip']);
+	try {
+		console.log('Downloading Font Awesome...');
+		const response = await fetch('https://github.com/FortAwesome/Font-Awesome/archive/refs/heads/6.x.zip');
+		const buffer = await response.buffer();
+		await fs.writeFile('master.zip', buffer);
 
-						const fontAwesomeTmpDir = 'tmp/Font-Awesome-6.x/';
-						const fontAwesome = JSON.parse(fs.readFileSync(`${fontAwesomeTmpDir}metadata/icons.json`));
+		console.log('Unzipping Font Awesome...');
+		await new Promise((resolve, reject) => {
+			src('master.zip')
+				.pipe(unzip())
+				.pipe(dest('tmp'))
+				.on('end', resolve)
+				.on('error', reject);
+		});
 
-						let fontsString = '<?php\n\nfunction siteorigin_widgets_icons_fontawesome_filter( $icons ){\n\treturn array_merge($icons, array(\n';
-						for (const [icon, iconProps] of Object.entries(fontAwesome)) {
-							fontsString += `\t\t'${icon}' => array( 'unicode' => '&#x${iconProps.unicode};', 'styles' => array( `;
-							iconProps.styles.forEach((style, i) => {
-								fontsString += `${i > 0 ? ", " : ""}'sow-fa${style.charAt(0)}'`;
-							});
-							fontsString += ' ), ),\n';
-						}
-						fontsString += '\n\t));\n}\nadd_filter';
+		await deleteAsync(['master.zip']);
 
-						fs.readFile(`${config.fontAwesome.base}filter.php`, 'utf8', (error, data) => {
-							if (error) {
-								console.log(error.message);
-								return reject(error);
-							}
+		const fontAwesomeTmpDir = 'tmp/Font-Awesome-6.x/';
+		console.log('Parsing Font Awesome metadata...');
+		const fontAwesome = JSON.parse(await fs.readFile(`${fontAwesomeTmpDir}metadata/icons.json`, 'utf8'));
 
-							const editedFile = data.replace(/<\?php([\s\S]*?)add_filter/, fontsString);
-							fs.writeFile(`${config.fontAwesome.base}filter.php`, editedFile, (error) => {
-								if (error) {
-									console.log(error.message);
-									return reject(error);
-								}
-								console.log('Successfully updated Font Awesome filter.php. Please manually add migration code for any removed icons. https://fontawesome.com/docs/changelog/');
-
-								fs.readFile(`${fontAwesomeTmpDir}css/regular.css`, 'utf8', (error, data) => {
-									if (error) {
-										console.log(error.message);
-										return reject(error);
-									}
-
-									const newVersion = data.match(/Free ([\S]*?) by/);
-									fs.readFile(`${config.fontAwesome.base}style.css`, 'utf8', (error, styleData) => {
-										if (error) {
-											console.log(error.message);
-											return reject(error);
-										}
-										const oldVersion = styleData.match(/Free ([\S]*?) by/);
-										const newStyle = styleData.replace(oldVersion[1], newVersion[1]);
-										fs.writeFile(`${config.fontAwesome.base}style.css`, newStyle, (error) => {
-											if (error) {
-												console.log(error.message);
-												return reject(error);
-											}
-											console.log(`Updating Font Awesome ${oldVersion[1]} to ${newVersion[1]}`);
-
-											src(`${fontAwesomeTmpDir}webfonts/*`)
-												.pipe(dest(`${config.fontAwesome.base}webfonts`))
-												.on('end', () => {
-													console.log('Successfully moved Font Awesome font files');
-													del(['tmp']);
-													resolve();
-												});
-										});
-									});
-								});
-							});
-						});
-					});
+		let fontsString = '<?php\n\nfunction siteorigin_widgets_icons_fontawesome_filter( $icons ){\n\treturn array_merge($icons, array(\n';
+		for (const [icon, iconProps] of Object.entries(fontAwesome)) {
+			fontsString += `\t\t'${icon}' => array( 'unicode' => '&#x${iconProps.unicode};', 'styles' => array( `;
+			iconProps.styles.forEach((style, i) => {
+				fontsString += `${i > 0 ? ", " : ""}'sow-fa${style.charAt(0)}'`;
 			});
-	});
+			fontsString += ' ), ),\n';
+		}
+		fontsString += '\n\t));\n}\nadd_filter';
+
+		console.log('Updating Font Awesome filter...');
+		const filterData = await fs.readFile(`${config.fontAwesome.base}filter.php`, 'utf8');
+		const editedFile = filterData.replace(/<\?php([\s\S]*?)add_filter/, fontsString);
+		await fs.writeFile(`${config.fontAwesome.base}filter.php`, editedFile);
+
+		console.log('Successfully updated Font Awesome filter.php. Please manually add migration code for any removed icons. https://fontawesome.com/docs/changelog/');
+
+		console.log('Updating Font Awesome version...');
+		const regularCssData = await fs.readFile(`${fontAwesomeTmpDir}css/regular.css`, 'utf8');
+		const newVersion = regularCssData.match(/Free ([\S]*?) by/);
+		const styleData = await fs.readFile(`${config.fontAwesome.base}style.css`, 'utf8');
+		const oldVersion = styleData.match(/Free ([\S]*?) by/);
+		const newStyle = styleData.replace(oldVersion[1], newVersion[1]);
+		await fs.writeFile(`${config.fontAwesome.base}style.css`, newStyle);
+
+		console.log(`Updating Font Awesome ${oldVersion[1]} to ${newVersion[1]}`);
+
+		console.log('Moving Font Awesome font files...');
+		await new Promise((resolve, reject) => {
+			src(`${fontAwesomeTmpDir}webfonts/*`)
+				.pipe(dest(`${config.fontAwesome.base}webfonts`))
+				.on('end', resolve)
+				.on('error', reject);
+		});
+
+		console.log('Successfully moved Font Awesome font files');
+		await deleteAsync(['tmp']);
+
+		console.log('Font Awesome update completed successfully.');
+	} catch (error) {
+		console.error('An error occurred while updating Font Awesome:', error);
+	}
 };
 
-// Exporting tasks
-exports.clean = clean;
-exports.version = versionTask;
-exports.less = lessTask;
-exports.sass = sassTask;
+// Define the series of tasks for the build process
+const buildProcess = series(
+	clean,
+	versionTask,
+	parallel(
+		css,
+		series(babelTask, browserifyTask)
+	),
+	parallel(minifyCss, minifyJs),
+	copy,
+	i18n,
+	move,
+	buildRelease
+);
+
+const errorHandler = (err) => {
+	console.error('Build failed:', err);
+	process.exit(1);
+};
+
+export const build = () => buildProcess().catch(errorHandler);
+
+// Define js and minify tasks separately
+const jsTasks = parallel(babelTask, browserifyTask);
+const minifyTasks = parallel(minifyCss, minifyJs);
+
+// Export tasks
+export {
+	clean,
+	versionTask as version,
+	css,
+	jsTasks as js,
+	minifyTasks as minify,
+	copy,
+	i18n,
+	move,
+	buildProcess as buildRelease,
+	buildDev,
+	updateGoogleFonts,
+	updateFontAwesome
+};
+
+// Default task
+export default buildProcess;
