@@ -31,6 +31,7 @@
     "node-fetch": "^2.7.0",
     "path-sort": "^0.1.0",
     "punycode": "^2.3.1",
+    "unzipper": "^0.12.2",
     "vinyl-source-stream": "^2.0.0",
     "yargs": "^17.7.2"
   },
@@ -47,7 +48,7 @@
     "i18n": "gulp i18n",
     "move": "gulp move",
     "updateGoogleFonts": "gulp updateGoogleFonts --apiKey=$npm_config_apiKey",
-    "updateFontAwesome": "gulp updateFontAwesome"
+    "update:font-awesome": "gulp updateFontAwesomeTask"
   },
   "resolutions": {
     "graceful-fs": "4.2.3"
