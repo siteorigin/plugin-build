@@ -8,6 +8,7 @@
     "@babel/preset-env": "^7.24.8",
     "@babel/preset-react": "^7.24.7",
     "browserify": "^17.0.0",
+    "cross-env": "^7.0.3",
     "css": "^3.0.0",
     "del": "^7.1.0",
     "gulp": "^5.0.0",
@@ -37,7 +38,7 @@
   },
   "scripts": {
     "preinstall": "npx npm-force-resolutions",
-    "build:release": "gulp buildRelease --release=$npm_config_release",
+    "build:release": "cross-env gulp buildRelease --release=$npm_config_release",
     "build:dev": "gulp buildDev",
     "clean": "gulp clean",
     "version": "gulp version",
@@ -47,7 +48,7 @@
     "copy": "gulp copy",
     "i18n": "gulp i18n",
     "move": "gulp move",
-    "updateGoogleFonts": "gulp updateGoogleFonts --apiKey=$npm_config_apiKey",
+    "updateGoogleFonts": "cross-env gulp updateGoogleFonts --apiKey=$npm_config_apiKey",
     "update:font-awesome": "gulp updateFontAwesomeTask"
   },
   "resolutions": {
