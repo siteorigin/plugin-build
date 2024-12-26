@@ -17,7 +17,7 @@ var gutil = require( 'gulp-util' );
 var source = require( 'vinyl-source-stream' );
 var babel = require( 'gulp-babel' );
 var browserify = require( 'browserify' );
-var gulpFilter = require( 'gulp-filter' );
+var filter = require( 'gulp-filter' );
 var moment = require( 'moment' );
 var yargs = require( 'yargs' );
 var request = require( 'request' );
@@ -163,11 +163,17 @@ gulp.task( 'minifyJs', [ 'browserify' ], function () {
 } );
 
 gulp.task( 'copy', [ 'version', 'minifyCss', 'minifyJs' ], function () {
-	if ( !config.copy ) {
+	if ( ! config.copy ) {
 		return;
 	}
 
+	var phpFilter = filter( [ '**/*.php' ], { restore: true } );
+	
+	// Copy the remaining files and replace certain strings in PHP
 	return gulp.src( config.copy.src, { base: '.' } )
+	.pipe( phpFilter )
+	.pipe( replace( "'siteorigin-installer'", "'" + config.slug + "'" ) )
+	.pipe( phpFilter.restore )
 	.pipe( gulp.dest( 'tmp' ) );
 } );
 
