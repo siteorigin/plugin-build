@@ -172,7 +172,7 @@ gulp.task( 'copy', [ 'version', 'minifyCss', 'minifyJs' ], function () {
 	// Copy the remaining files and replace certain strings in PHP
 	return gulp.src( config.copy.src, { base: '.' } )
 	.pipe( phpFilter )
-	.pipe( replace( "'siteorigin-installer'", "'" + config.slug + "'" ) )
+	.pipe( replace( "'siteorigin-installer-text-domain'", "'" + config.slug + "'" ) )
 	.pipe( phpFilter.restore )
 	.pipe( gulp.dest( 'tmp' ) );
 } );
