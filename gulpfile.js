@@ -157,8 +157,11 @@ gulp.task( 'minifyJs', [ 'browserify' ], function () {
 
 	return gulp.src( config.js.src, { base: '.' } )
 	.pipe( gulp.dest( 'tmp' ) )
-	.pipe( rename( { suffix: jsMinSuffix } ) )
-	.pipe( uglify() )
+	.pipe( rename( { suffix: '.min' } ) )
+	.pipe( uglify().on( 'error', function ( err ) {
+		gutil.log( gutil.colors.red( '[Error]' ), err.toString() );
+		process.exit( 1 );
+	} ) )
 	.pipe( gulp.dest( 'tmp' ) );
 } );
 
