@@ -6,6 +6,7 @@ import replace from 'gulp-replace';
 import wpPot from 'gulp-wp-pot';
 import zip from 'gulp-zip';
 import sort from 'gulp-sort';
+import moment from 'moment';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -37,8 +38,13 @@ export const versionTask = (config, version, jsMinSuffix, verSuffix) => {
 		.on('data', (file) => {
 			console.log('Processing version file:', file.path);
 		})
-		.pipe(replace(/##version##/g, version))
-		.pipe(replace(/##suffix##/g, verSuffix))
+		.pipe(replace(/(Stable tag:).*/, '$1 ' + version))
+		.pipe(replace(/(Build time:).*/, '$1 ' + moment(Date.now()).format()))
+		.pipe(replace(/(Version:).*/, '$1 ' + version))
+		.pipe(replace(/(define\(\s*'[A-Z_]+_VERSION',\s*').*('\s*\);)/, '$1' + version + '$2'))
+		.pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
+		.pipe(replace(/(define\(\s*'[A-Z_]+_CSS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
+		.pipe(replace(/(define\(\s*'[A-Z_]+_VERSION_SUFFIX',\s*').*('\s*\);)/, '$1' + verSuffix + '$2'))
 		.pipe(dest('tmp'));
 };
 
@@ -79,7 +85,6 @@ export const i18n = (config, args) => {
 		.pipe(sort())
 		.pipe(wpPot({
 			domain: config.pot.textdomain,
-			destFile: config.pot.destFile,
 			package: config.pot.package,
 			bugReport: config.pot.bugReport,
 			lastTranslator: config.pot.lastTranslator,
@@ -91,7 +96,7 @@ export const i18n = (config, args) => {
 		}).on('error', (err) => {
 			console.error('POT generation error:', err.message);
 		}))
-		.pipe(dest(`${tmpDir}lang/`));
+		.pipe(dest(`${tmpDir}lang/${config.slug}.pot`));
 };
 
 export const move = (config, outDir) => {
@@ -113,14 +118,13 @@ export const buildRelease = (config, outDir, version) => {
 	}
 
 	console.log('Build release task starting...');
-	const source_path = outDir === 'dist' ? outDir + '/' + config.slug : outDir;
 	const zipName = `${config.slug}.${version}.zip`;
 	
 	console.log('Creating zip:', zipName);
 
-	return src(source_path + '/**/*', { base: outDir })
+	return src(outDir + '/**/*')
 		.pipe(zip(zipName))
-		.pipe(dest('..'));
+		.pipe(dest(outDir));
 };
 
 export const cleanTmp = async () => {
