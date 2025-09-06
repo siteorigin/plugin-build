@@ -6,8 +6,12 @@ import replace from 'gulp-replace';
 import wpPot from 'gulp-wp-pot';
 import zip from 'gulp-zip';
 import sort from 'gulp-sort';
+import filter from 'gulp-filter';
 import moment from 'moment';
 import { createRequire } from 'module';
+import fs from 'fs';
+import path from 'path';
+import { glob } from 'glob';
 
 const require = createRequire(import.meta.url);
 
@@ -57,11 +61,38 @@ export const copy = (config) => {
 	console.log('Copy task starting...');
 	console.log('Copy src patterns:', config.copy.src);
 
-	return src(config.copy.src, { base: '.' })
-		.on('data', (file) => {
-			console.log('Processing copy file:', file.path);
-		})
+	// Use Gulp for PHP files (need text processing) and Node.js fs for binary files.
+	const phpFiles = src(config.copy.src, { base: '.' })
+		.pipe(filter(['**/*.php']))
+		.pipe(replace("'siteorigin-installer-text-domain'", "'" + config.slug + "'"))
 		.pipe(dest('tmp'));
+
+	// Copy non-PHP files using Node.js fs to preserve binary content.
+	const copyBinaryFiles = async () => {
+		const allFiles = await glob(config.copy.src, { nodir: true });
+		const nonPhpFiles = allFiles.filter(file => !file.endsWith('.php'));
+		
+		for (const file of nonPhpFiles) {
+			const destPath = path.join('tmp', file);
+			const destDir = path.dirname(destPath);
+			
+			// Create destination directory if it doesn't exist.
+			if (!fs.existsSync(destDir)) {
+				fs.mkdirSync(destDir, { recursive: true });
+			}
+			
+			// Copy file preserving binary content.
+			fs.copyFileSync(file, destPath);
+		}
+	};
+
+	// Wait for both operations to complete.
+	return Promise.all([
+		new Promise((resolve, reject) => {
+			phpFiles.on('end', resolve).on('error', reject);
+		}),
+		copyBinaryFiles()
+	]);
 };
 
 export const i18n = (config, args) => {
@@ -84,19 +115,15 @@ export const i18n = (config, args) => {
 		})
 		.pipe(sort())
 		.pipe(wpPot({
-			domain: config.pot.textdomain,
-			package: config.pot.package,
-			bugReport: config.pot.bugReport,
-			lastTranslator: config.pot.lastTranslator,
-			team: config.pot.team,
-			headers: {
-				'poedit': true,
-				'x-poedit-keywordslist': true
-			}
+			domain: config.slug,
+			package: config.slug,
+			bugReport: 'http://www.siteorigin.com/thread',
+			lastTranslator: 'SiteOrigin <support@siteorigin.com>',
+			team: 'SiteOrigin <support@siteorigin.com>'
 		}).on('error', (err) => {
 			console.error('POT generation error:', err.message);
 		}))
-		.pipe(dest(`${tmpDir}lang/${config.slug}.pot`));
+		.pipe(dest(tmpDir + 'lang/' + config.slug + '.pot'));
 };
 
 export const move = (config, outDir) => {
