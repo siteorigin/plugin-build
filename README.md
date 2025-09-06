@@ -47,12 +47,6 @@ Release task usage:
 npm run build:release --release=1.2.3
 ```
 
-Or alternatively:
-
-```bash
-gulp buildRelease --release=1.2.3
-```
-
 The development build task includes:
 
 1. Initial compilation of LESS/SASS files to CSS.
@@ -86,7 +80,7 @@ npm run update:font-awesome
 
 ### Updating the Google fonts array
 ```bash
-npm run updateGoogleFonts --apiKey=YOUR_API_KEY
+npx cross-env gulp updateGoogleFontsTask --apiKey=YOUR_API_KEY
 ```
 
 The Google Fonts task will require an update to the build-config file in each plugin to specify the name and location of the fonts file.

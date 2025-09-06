@@ -2,9 +2,10 @@
 import gulp from 'gulp';
 const { src, dest } = gulp;
 import fetch from 'node-fetch';
-import unzipper from 'unzipper';
 import { promises as fs } from 'fs';
+import { createReadStream } from 'fs';
 import path from 'path';
+import { Extract } from 'unzipper';
 
 export const updateFontAwesome = async (config) => {
 	if (!config.fontAwesome || !config.fontAwesome.version) {
@@ -24,7 +25,7 @@ export const updateFontAwesome = async (config) => {
 		console.log('Downloading Font Awesome from:', downloadUrl);
 		
 		// Download the zip file.
-		const response = await fetch(downloadUrl);
+		const response = await fetch(downloadUrl, { redirect: 'follow' });
 		if (!response.ok) {
 			throw new Error(`Download failed: ${response.statusText}`);
 		}
@@ -36,52 +37,54 @@ export const updateFontAwesome = async (config) => {
 		// Extract the zip file.
 		await fs.mkdir(extractPath, { recursive: true });
 		
-		return new Promise((resolve, reject) => {
-			src(tempZipPath)
-				.pipe(unzipper.Extract({ path: extractPath }))
-				.on('close', async () => {
-					try {
-						console.log('Extraction complete, copying files...');
-						
-						// Copy CSS files.
-						if (config.fontAwesome.css && config.fontAwesome.css.dest) {
-							await new Promise((resolveCSS, rejectCSS) => {
-								src(`${extractPath}/Font-Awesome-${version.replace('v', '')}/css/**/*.css`)
-									.on('data', (file) => {
-										console.log('Processing FA CSS file:', file.path);
-									})
-									.pipe(dest(config.fontAwesome.css.dest))
-									.on('end', resolveCSS)
-									.on('error', rejectCSS);
-							});
-						}
-						
-						// Copy font files.
-						if (config.fontAwesome.fonts && config.fontAwesome.fonts.dest) {
-							await new Promise((resolveFonts, rejectFonts) => {
-								src(`${extractPath}/Font-Awesome-${version.replace('v', '')}/fonts/**/*`)
-									.on('data', (file) => {
-										console.log('Processing FA font file:', file.path);
-									})
-									.pipe(dest(config.fontAwesome.fonts.dest))
-									.on('end', resolveFonts)
-									.on('error', rejectFonts);
-							});
-						}
-						
-						// Cleanup temp files.
-						await fs.unlink(tempZipPath);
-						await fs.rmdir(extractPath, { recursive: true });
-						
-						console.log('Font Awesome update complete.');
-						resolve();
-					} catch (error) {
-						console.error('Font Awesome update error:', error.message);
-						reject(error);
-					}
-				})
+		// Extract using Node.js streams to avoid Gulp binary issues.
+		await new Promise((resolve, reject) => {
+			createReadStream(tempZipPath)
+				.pipe(Extract({ path: extractPath }))
+				.on('close', resolve)
 				.on('error', reject);
 		});
+		
+		console.log('Extraction complete, copying files...');
+		
+		// Copy CSS files.
+		if (config.fontAwesome.css && config.fontAwesome.css.dest) {
+			await new Promise((resolveCSS, rejectCSS) => {
+				src(`${extractPath}/Font-Awesome-${version}/css/**/*.css`)
+					.on('data', (file) => {
+						console.log('Processing FA CSS file:', file.path);
+					})
+					.pipe(dest(config.fontAwesome.css.dest))
+					.on('end', resolveCSS)
+					.on('error', rejectCSS);
+			});
+		}
+
+		// Copy font files using Node.js fs to preserve binary content.
+		if (config.fontAwesome.fonts && config.fontAwesome.fonts.dest) {
+			const glob = (await import('glob')).glob;
+			const fontFiles = await glob(`${extractPath}/Font-Awesome-${version}/webfonts/**/*`, { nodir: true });
+
+			for (const file of fontFiles) {
+				const relativePath = path.relative(`${extractPath}/Font-Awesome-${version}/webfonts`, file);
+				const destPath = path.join(config.fontAwesome.fonts.dest, relativePath);
+				const destDir = path.dirname(destPath);
+
+				console.log('Processing FA font file:', file);
+
+				if (!await fs.access(destDir).then(() => true).catch(() => false)) {
+					await fs.mkdir(destDir, { recursive: true });
+				}
+
+				await fs.copyFile(file, destPath);
+			}
+		}
+
+		// Cleanup temp files.
+		await fs.unlink(tempZipPath);
+		await fs.rm(extractPath, { recursive: true });
+
+		console.log('Font Awesome update complete.');
 		
 	} catch (error) {
 		console.error('Font Awesome update error:', error.message);

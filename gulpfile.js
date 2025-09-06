@@ -103,10 +103,10 @@ const buildDev = (cb) => {
 };
 
 // Update Font Awesome task.
-export const updateFontAwesomeTask = () => updateFontAwesome(config);
+const updateFontAwesomeTask = () => updateFontAwesome(config);
 
 // Update Google Fonts task.
-export const updateGoogleFontsTask = () => {
+const updateGoogleFontsTask = () => {
 	const args = yargs(hideBin(process.argv)).argv;
 	return updateGoogleFonts(config, args.apiKey);
 };
@@ -126,7 +126,9 @@ export {
 	i18nWithConfig as i18n,
 	moveWithConfig as move,
 	buildProcess as buildRelease,
-	buildDev
+	buildDev,
+	updateFontAwesomeTask,
+	updateGoogleFontsTask
 };
 
 // Default task.
