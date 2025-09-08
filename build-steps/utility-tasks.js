@@ -45,6 +45,7 @@ export const versionTask = (config, version, jsMinSuffix, verSuffix) => {
 		.pipe(replace(/(Stable tag:).*/, '$1 ' + version))
 		.pipe(replace(/(Build time:).*/, '$1 ' + moment(Date.now()).format()))
 		.pipe(replace(/(Version:).*/, '$1 ' + version))
+		.pipe(replace(/%npm_config_release%/g, version))
 		.pipe(replace(/(define\(\s*'[A-Z_]+_VERSION',\s*').*('\s*\);)/, '$1' + version + '$2'))
 		.pipe(replace(/(define\(\s*'[A-Z_]+_JS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
 		.pipe(replace(/(define\(\s*'[A-Z_]+_CSS_SUFFIX',\s*').*('\s*\);)/, '$1' + jsMinSuffix + '$2'))
@@ -63,8 +64,13 @@ export const copy = (config) => {
 
 	// Use Gulp for PHP files (need text processing) and Node.js fs for binary files.
 	const phpFiles = src(config.copy.src, { base: '.' })
-		.pipe(filter(['**/*.php']))
+		.pipe(filter(['**/*.php', '!**/installer/**']))
 		.pipe(replace("'siteorigin-installer-text-domain'", "'" + config.slug + "'"))
+		.pipe(dest('tmp'));
+
+	// Copy installer PHP files without text processing to avoid spacing issues.
+	const installerPhpFiles = src(config.copy.src, { base: '.' })
+		.pipe(filter(['**/installer/**/*.php']))
 		.pipe(dest('tmp'));
 
 	// Copy non-PHP files using Node.js fs to preserve binary content.
@@ -86,10 +92,13 @@ export const copy = (config) => {
 		}
 	};
 
-	// Wait for both operations to complete.
+	// Wait for all operations to complete.
 	return Promise.all([
 		new Promise((resolve, reject) => {
 			phpFiles.on('end', resolve).on('error', reject);
+		}),
+		new Promise((resolve, reject) => {
+			installerPhpFiles.on('end', resolve).on('error', reject);
 		}),
 		copyBinaryFiles()
 	]);
