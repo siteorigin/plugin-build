@@ -28,7 +28,16 @@ process.chdir('..');
 
 const args = yargs(hideBin(process.argv)).argv;
 const outDir = args.outDir || (args._[0] === 'buildDev' || args._[0] === 'build:dev' ? '.' : 'dist');
-const version = args.release || args.v || (args._[0] === 'buildDev' || args._[0] === 'build:dev' ? 'dev' : undefined);
+
+// Resolve version from arguments or environment variables.
+let version = args.release || args.v || (args._[0] === 'buildDev' || args._[0] === 'build:dev' ? 'dev' : undefined);
+if (version && version.includes('%npm_config_release%')) {
+	// Handle environment variable placeholder.
+	version = process.env.npm_config_release || undefined;
+	if (!version) {
+		console.warn('Warning: Version placeholder detected but npm_config_release not set. Using undefined.');
+	}
+}
 
 const jsMinSuffix = config.jsMinSuffix;
 const verSuffix = version ? `-${version.split('.').slice(0, 3).join('')}` : '';

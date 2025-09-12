@@ -68,9 +68,10 @@ export const copy = (config) => {
 		.pipe(replace("'siteorigin-installer-text-domain'", "'" + config.slug + "'"))
 		.pipe(dest('tmp'));
 
-	// Copy installer PHP files without text processing to avoid spacing issues.
+	// Copy installer PHP files with text domain replacement but preserve formatting.
 	const installerPhpFiles = src(config.copy.src, { base: '.' })
-		.pipe(filter(['**/installer/**/*.php']))
+		.pipe(filter(['**/installer/**/*.php', '!**/github-plugin-updater.php']))
+		.pipe(replace("'siteorigin-installer-text-domain'", "'" + config.slug + "'"))
 		.pipe(dest('tmp'));
 
 	// Copy non-PHP files using Node.js fs to preserve binary content.
