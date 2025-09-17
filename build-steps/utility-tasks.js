@@ -65,13 +65,13 @@ export const copy = (config) => {
 	// Use Gulp for PHP files (need text processing) and Node.js fs for binary files.
 	const phpFiles = src(config.copy.src, { base: '.' })
 		.pipe(filter(['**/*.php', '!**/installer/**']))
-		.pipe(replace("'siteorigin-installer-text-domain'", "'" + config.slug + "'"))
+		.pipe(replace(/(['"])siteorigin-installer-text-domain\1/g, "$1" + config.slug + "$1"))
 		.pipe(dest('tmp'));
 
 	// Copy installer PHP files with text domain replacement but preserve formatting.
 	const installerPhpFiles = src(config.copy.src, { base: '.' })
 		.pipe(filter(['**/installer/**/*.php', '!**/github-plugin-updater.php']))
-		.pipe(replace("'siteorigin-installer-text-domain'", "'" + config.slug + "'"))
+		.pipe(replace(/(['"])siteorigin-installer-text-domain\1/g, "$1" + config.slug + "$1"))
 		.pipe(dest('tmp'));
 
 	// Copy non-PHP files using Node.js fs to preserve binary content.
