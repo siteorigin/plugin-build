@@ -31,11 +31,19 @@ const outDir = args.outDir || (args._[0] === 'buildDev' || args._[0] === 'build:
 
 // Resolve version from arguments or environment variables.
 let version = args.release || args.v || (args._[0] === 'buildDev' || args._[0] === 'build:dev' ? 'dev' : undefined);
-if (version && version.includes('%npm_config_release%')) {
+
+if (
+	! version ||
 	// Handle environment variable placeholder.
-	version = process.env.npm_config_release || undefined;
-	if (!version) {
-		console.warn('Warning: Version placeholder detected but npm_config_release not set. Using undefined.');
+	(
+		version &&
+		version.includes('%npm_config_release%')
+	)
+) {
+	const envVersion = process.env.RELEASE_VERSION || process.env.npm_config_release || undefined;
+
+	if (envVersion) {
+		version = envVersion;
 	}
 }
 
