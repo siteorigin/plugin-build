@@ -11,14 +11,8 @@ import moment from 'moment';
 import { createRequire } from 'module';
 import fs from 'fs';
 import path from 'path';
-import * as globModule from 'glob';
+import matched from 'matched';
 
-const glob =
-	typeof globModule === 'function'
-		? globModule
-		: typeof globModule.default === 'function'
-			? globModule.default
-			: globModule.glob;
 const require = createRequire(import.meta.url);
 
 export const clean = async (outDir) => {
@@ -82,7 +76,7 @@ export const copy = (config) => {
 
 	// Copy non-PHP files using Node.js fs to preserve binary content.
 	const copyBinaryFiles = async () => {
-		const allFiles = await glob(config.copy.src, { nodir: true });
+		const allFiles = await matched.promise(config.copy.src, { nodir: true });
 		const nonPhpFiles = allFiles.filter(file => !file.endsWith('.php'));
 		
 		for (const file of nonPhpFiles) {

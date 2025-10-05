@@ -53,7 +53,8 @@
     "update:font-awesome": "gulp updateFontAwesomeTask"
   },
   "resolutions": {
-    "graceful-fs": "4.2.3"
+    "graceful-fs": "4.2.3",
+    "glob": "7.2.3"
   },
   "overrides": {
     "matched": {
