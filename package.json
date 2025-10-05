@@ -57,6 +57,9 @@
     "glob": "7.2.3"
   },
   "overrides": {
+    "wp-pot": {
+      "matched": "^5.0.1"
+    },
     "matched": {
       "glob": "^7.2.3"
     }
