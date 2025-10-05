@@ -11,8 +11,14 @@ import moment from 'moment';
 import { createRequire } from 'module';
 import fs from 'fs';
 import path from 'path';
-import { glob } from 'glob';
+import * as globModule from 'glob';
 
+const glob =
+	typeof globModule === 'function'
+		? globModule
+		: typeof globModule.default === 'function'
+			? globModule.default
+			: globModule.glob;
 const require = createRequire(import.meta.url);
 
 export const clean = async (outDir) => {
