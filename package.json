@@ -39,6 +39,7 @@
   },
   "scripts": {
     "preinstall": "npx npm-force-resolutions",
+    "postinstall": "node scripts/patch-matched.js",
     "build:release": "cross-env gulp buildRelease --release=$npm_config_release",
     "build:dev": "gulp buildDev",
     "clean": "gulp clean",
