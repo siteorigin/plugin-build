@@ -6,7 +6,7 @@ var sort = require( 'gulp-sort' );
 var del = require( 'del' );
 var rename = require( 'gulp-rename' );
 var replace = require( 'gulp-replace' );
-var sass = require( 'gulp-sass' );
+var sass = require( 'gulp-sass' )( require( 'sass' ) );
 var less = require( 'gulp-less' );
 var uglify = require( 'gulp-uglify-es' ).default;
 var cssnano = require( 'gulp-cssnano' );
@@ -87,7 +87,7 @@ gulp.task( 'sass', [], function () {
 		return;
 	}
 	return gulp.src( config.sass.src, { base: '.' } )
-	.pipe( catchDevErrors( sass( { outputStyle: args.target === 'build:release' ? 'compress' : 'nested' } ) ) )
+	.pipe( catchDevErrors( sass( { outputStyle: args.target === 'build:release' ? 'compressed' : 'expanded' } ) ) )
 	.pipe( gulp.dest( args.target === 'build:release' ? 'tmp' : '.' ) );
 } );
 
