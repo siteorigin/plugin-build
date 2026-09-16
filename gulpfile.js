@@ -51,10 +51,15 @@ if ( args.target === 'build:dev' ) version = 'dev';
 var jsMinSuffix = config.jsMinSuffix;
 var verSuffix = typeof version === 'undefined' ? '' : '-' + version.toString().split( '.' ).splice( 0, 3 ).join( '' );
 
+// In release mode every task that writes to tmp/ waits for clean, so a tmp/ left
+// behind by an interrupted build is never trusted. Dev mode and standalone tasks
+// keep their current wiring.
+var cleanDeps = args.target === 'build:release' ? [ 'clean' ] : [];
+
 gulp.task( 'clean', function () {
 	if ( outDir === 'dist' ) {
-		console.log( 'Deleting output directory: ' + outDir );
-		del( [ outDir ] );
+		console.log( 'Deleting output directory: ' + outDir + ' and tmp' );
+		return del( [ outDir, 'tmp' ] );
 	}
 } );
 
@@ -75,7 +80,7 @@ gulp.task( 'version', [ 'clean' ], function () {
 	.pipe( gulp.dest( 'tmp' ) );
 } );
 
-gulp.task( 'less', [], function () {
+gulp.task( 'less', cleanDeps, function () {
 	if ( !config.less ) {
 		return;
 	}
@@ -84,7 +89,7 @@ gulp.task( 'less', [], function () {
 	.pipe( gulp.dest( args.target === 'build:release' ? 'tmp' : '.' ) );
 } );
 
-gulp.task( 'sass', [], function () {
+gulp.task( 'sass', cleanDeps, function () {
 	if ( !config.sass ) {
 		return;
 	}
@@ -97,7 +102,7 @@ gulp.task( 'css', [ 'less', 'sass' ], function () {
 
 } );
 
-gulp.task( 'babel', function () {
+gulp.task( 'babel', cleanDeps, function () {
 	if ( typeof config.babel === 'undefined' ) {
 		return;
 	}
