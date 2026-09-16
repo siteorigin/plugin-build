@@ -176,6 +176,36 @@ gulp.task( 'minifyCss', [ 'less', 'sass' ], function () {
 	.pipe( gulp.dest( isRelease ? 'tmp' : '.' ) );
 } );
 
+// Release guard: every CSS file in tmp/ that matches config.css.src must have a
+// .min.css sibling in tmp/, because the release PHP loads the .min.css.
+gulp.task( 'verifyCss', [ 'minifyCss' ], function ( done ) {
+	if ( !config.css || args.target !== 'build:release' ) {
+		done();
+		return;
+	}
+	var missing = [];
+	gulp.src( tmpCssSrc(), { base: 'tmp', read: false } )
+	.on( 'data', function ( file ) {
+		if ( /\.min\.css$/.test( file.path ) ) {
+			return;
+		}
+		var minPath = file.path.replace( /\.css$/, '.min.css' );
+		if ( ! fs.existsSync( minPath ) ) {
+			missing.push( path.relative( process.cwd(), minPath ) );
+		}
+	} )
+	.on( 'end', function () {
+		if ( missing.length ) {
+			gutil.log( gutil.colors.red( '[Error]' ), 'Release build is missing minified CSS:' );
+			missing.forEach( function ( minPath ) {
+				gutil.log( gutil.colors.red( '  ' + minPath ) );
+			} );
+			process.exit( 1 );
+		}
+		done();
+	} );
+} );
+
 gulp.task( 'minifyJs', [ 'browserify' ], function () {
 	if ( !config.js ) {
 		return;
@@ -191,7 +221,7 @@ gulp.task( 'minifyJs', [ 'browserify' ], function () {
 	.pipe( gulp.dest( 'tmp' ) );
 } );
 
-gulp.task( 'copy', [ 'version', 'minifyCss', 'minifyJs' ], function () {
+gulp.task( 'copy', [ 'version', 'verifyCss', 'minifyJs' ], function () {
 	if ( ! config.copy ) {
 		return;
 	}
