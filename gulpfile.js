@@ -21,7 +21,9 @@ var filter = require( 'gulp-filter' );
 var moment = require( 'moment' );
 var yargs = require( 'yargs' );
 var request = require( 'request' );
+var merge = require( 'merge-stream' );
 var fs = require( 'fs' );
+var path = require( 'path' );
 
 var args = yargs.argv;
 if ( args.hasOwnProperty( '_' ) ) {
@@ -137,17 +139,41 @@ gulp.task( 'browserify', [ 'babel' ], function () {
 	}
 } );
 
+// Rewrite the config.css.src patterns so they match the same paths under tmp/.
+var tmpCssSrc = function () {
+	return config.css.src.map( function ( pattern ) {
+		return pattern.charAt( 0 ) === '!' ? '!tmp/' + pattern.substr( 1 ) : 'tmp/' + pattern;
+	} );
+};
+
 gulp.task( 'minifyCss', [ 'less', 'sass' ], function () {
 	if ( !config.css ) {
 		return;
 	}
+	var isRelease = args.target === 'build:release';
 	var cssSrc = config.css.src;
-	return gulp.src( cssSrc, { base: '.' } )
+
+	// Hand-written CSS from the working tree.
+	var stream = gulp.src( cssSrc, { base: '.' } )
+	// In release mode the compiled CSS that less/sass wrote to tmp/ is authoritative,
+	// so skip any working-tree copy of it. This also keeps a file from being read and
+	// written in tmp/ at the same time.
+	.pipe( gulpif( isRelease, filter( function ( file ) {
+		return ! fs.existsSync( path.join( 'tmp', file.relative ) );
+	} ) ) )
 	// This will output the non-minified version
-	.pipe( gulpif( args.target === 'build:release', gulp.dest( 'tmp' ) ) )
+	.pipe( gulpif( isRelease, gulp.dest( 'tmp' ) ) );
+
+	if ( isRelease ) {
+		// Compiled CSS lives only in tmp/ on a fresh clone (it is gitignored), so the
+		// working tree alone would leave it without a .min.css sibling.
+		stream = merge( stream, gulp.src( tmpCssSrc(), { base: 'tmp' } ) );
+	}
+
+	return stream
 	.pipe( rename( { suffix: '.min' } ) )
 	.pipe( cssnano( { zindex: false, reduceIdents: false } ) )
-	.pipe( gulp.dest( args.target === 'build:release' ? 'tmp' : '.' ) );
+	.pipe( gulp.dest( isRelease ? 'tmp' : '.' ) );
 } );
 
 gulp.task( 'minifyJs', [ 'browserify' ], function () {
