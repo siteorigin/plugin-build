@@ -21,7 +21,9 @@ var filter = require( 'gulp-filter' );
 var moment = require( 'moment' );
 var yargs = require( 'yargs' );
 var request = require( 'request' );
+var merge = require( 'merge-stream' );
 var fs = require( 'fs' );
+var path = require( 'path' );
 
 var args = yargs.argv;
 if ( args.hasOwnProperty( '_' ) ) {
@@ -49,10 +51,15 @@ if ( args.target === 'build:dev' ) version = 'dev';
 var jsMinSuffix = config.jsMinSuffix;
 var verSuffix = typeof version === 'undefined' ? '' : '-' + version.toString().split( '.' ).splice( 0, 3 ).join( '' );
 
+// In release mode every task that writes to tmp/ waits for clean, so a tmp/ left
+// behind by an interrupted build is never trusted. Dev mode and standalone tasks
+// keep their current wiring.
+var cleanDeps = args.target === 'build:release' ? [ 'clean' ] : [];
+
 gulp.task( 'clean', function () {
 	if ( outDir === 'dist' ) {
-		console.log( 'Deleting output directory: ' + outDir );
-		del( [ outDir ] );
+		console.log( 'Deleting output directory: ' + outDir + ' and tmp' );
+		return del( [ outDir, 'tmp' ] );
 	}
 } );
 
@@ -73,7 +80,7 @@ gulp.task( 'version', [ 'clean' ], function () {
 	.pipe( gulp.dest( 'tmp' ) );
 } );
 
-gulp.task( 'less', [], function () {
+gulp.task( 'less', cleanDeps, function () {
 	if ( !config.less ) {
 		return;
 	}
@@ -82,7 +89,7 @@ gulp.task( 'less', [], function () {
 	.pipe( gulp.dest( args.target === 'build:release' ? 'tmp' : '.' ) );
 } );
 
-gulp.task( 'sass', [], function () {
+gulp.task( 'sass', cleanDeps, function () {
 	if ( !config.sass ) {
 		return;
 	}
@@ -95,7 +102,7 @@ gulp.task( 'css', [ 'less', 'sass' ], function () {
 
 } );
 
-gulp.task( 'babel', function () {
+gulp.task( 'babel', cleanDeps, function () {
 	if ( typeof config.babel === 'undefined' ) {
 		return;
 	}
@@ -137,17 +144,71 @@ gulp.task( 'browserify', [ 'babel' ], function () {
 	}
 } );
 
+// Rewrite the config.css.src patterns so they match the same paths under tmp/.
+var tmpCssSrc = function () {
+	return config.css.src.map( function ( pattern ) {
+		return pattern.charAt( 0 ) === '!' ? '!tmp/' + pattern.substr( 1 ) : 'tmp/' + pattern;
+	} );
+};
+
 gulp.task( 'minifyCss', [ 'less', 'sass' ], function () {
 	if ( !config.css ) {
 		return;
 	}
+	var isRelease = args.target === 'build:release';
 	var cssSrc = config.css.src;
-	return gulp.src( cssSrc, { base: '.' } )
+
+	// Hand-written CSS from the working tree.
+	var stream = gulp.src( cssSrc, { base: '.' } )
+	// In release mode the compiled CSS that less/sass wrote to tmp/ is authoritative,
+	// so skip any working-tree copy of it. This also keeps a file from being read and
+	// written in tmp/ at the same time.
+	.pipe( gulpif( isRelease, filter( function ( file ) {
+		return ! fs.existsSync( path.join( 'tmp', file.relative ) );
+	} ) ) )
 	// This will output the non-minified version
-	.pipe( gulpif( args.target === 'build:release', gulp.dest( 'tmp' ) ) )
+	.pipe( gulpif( isRelease, gulp.dest( 'tmp' ) ) );
+
+	if ( isRelease ) {
+		// Compiled CSS lives only in tmp/ on a fresh clone (it is gitignored), so the
+		// working tree alone would leave it without a .min.css sibling.
+		stream = merge( stream, gulp.src( tmpCssSrc(), { base: 'tmp' } ) );
+	}
+
+	return stream
 	.pipe( rename( { suffix: '.min' } ) )
 	.pipe( cssnano( { zindex: false, reduceIdents: false } ) )
-	.pipe( gulp.dest( args.target === 'build:release' ? 'tmp' : '.' ) );
+	.pipe( gulp.dest( isRelease ? 'tmp' : '.' ) );
+} );
+
+// Release guard: every CSS file in tmp/ that matches config.css.src must have a
+// .min.css sibling in tmp/, because the release PHP loads the .min.css.
+gulp.task( 'verifyCss', [ 'minifyCss' ], function ( done ) {
+	if ( !config.css || args.target !== 'build:release' ) {
+		done();
+		return;
+	}
+	var missing = [];
+	gulp.src( tmpCssSrc(), { base: 'tmp', read: false } )
+	.on( 'data', function ( file ) {
+		if ( /\.min\.css$/.test( file.path ) ) {
+			return;
+		}
+		var minPath = file.path.replace( /\.css$/, '.min.css' );
+		if ( ! fs.existsSync( minPath ) ) {
+			missing.push( path.relative( process.cwd(), minPath ) );
+		}
+	} )
+	.on( 'end', function () {
+		if ( missing.length ) {
+			gutil.log( gutil.colors.red( '[Error]' ), 'Release build is missing minified CSS:' );
+			missing.forEach( function ( minPath ) {
+				gutil.log( gutil.colors.red( '  ' + minPath ) );
+			} );
+			process.exit( 1 );
+		}
+		done();
+	} );
 } );
 
 gulp.task( 'minifyJs', [ 'browserify' ], function () {
@@ -165,7 +226,7 @@ gulp.task( 'minifyJs', [ 'browserify' ], function () {
 	.pipe( gulp.dest( 'tmp' ) );
 } );
 
-gulp.task( 'copy', [ 'version', 'minifyCss', 'minifyJs' ], function () {
+gulp.task( 'copy', [ 'version', 'verifyCss', 'minifyJs' ], function () {
 	if ( ! config.copy ) {
 		return;
 	}
