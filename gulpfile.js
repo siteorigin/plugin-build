@@ -237,6 +237,7 @@ gulp.task( 'copy', [ 'version', 'verifyCss', 'minifyJs' ], function () {
 	return gulp.src( config.copy.src, { base: '.' } )
 	.pipe( phpFilter )
 	.pipe( replace( "'siteorigin-installer-text-domain'", "'" + config.slug + "'" ) )
+	.pipe( replace( '{NEXT_VERSION}', version || 'dev' ) )
 	.pipe( phpFilter.restore )
 	.pipe( gulp.dest( 'tmp' ) );
 } );
