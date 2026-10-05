@@ -105,19 +105,27 @@ Follow these steps in order to release a plugin. A person or an agent can follow
    - Raise "Tested up to" in `readme.txt` if needed.
 
    Do NOT commit.
-4. **HUMAN GATE. Stop here.** The owner reads `git diff` in the repository. The owner edits the files in place if needed. Then the owner says "commit". Nothing is committed, built, tagged or pushed before that.
+4. **HUMAN GATE. Stop here.** The `readme.txt` and `changelog.txt` edits sit uncommitted in the working tree when you call the owner. The owner reads `git diff` in the repository. The owner edits the files in place if needed. Then the owner says "commit". Nothing is committed, built, tagged or pushed before that.
 5. **Commit the changelog.** Make one commit on the release branch. Use the repository's style, for example `Update changelog for X.Y.Z`.
 6. **Build the release package.** In the plugin's `build/` folder, run `npm run build:release --release=X.Y.Z`. The zip is `dist/<slug>.X.Y.Z.zip`. The unzipped release is `dist/<slug>/`. Then:
    - Record the zip's SHA-256: `shasum -a 256 dist/<slug>.X.Y.Z.zip`.
    - Confirm that the zip has X.Y.Z in the plugin header `Version:`, in the version constant (`define( '..._VERSION', 'X.Y.Z' )`) and in the readme `Stable tag:`. Use `unzip -p` to read these files from the zip.
    - Confirm that the zip has no `tests/`, `.github/` or `docs/plans/` files. `unzip -l dist/<slug>.X.Y.Z.zip | grep -E '/(tests|\.github|docs/plans)/'` must print nothing.
-7. **The owner uploads to wordpress.org.** Today the owner copies the contents of `dist/<slug>/` into the local SVN `trunk/` and commits by hand. [Issue #56](https://github.com/siteorigin/plugin-build/issues/56) will automate the copy. It comes after every plugin is on this branch.
-8. **Finish the release.** Wait until the owner confirms the upload. Then:
+7. **DEMO GATE.** Install the built zip on demo.siteorigin.com before anything goes to wordpress.org.
+   - Keep a rollback copy of the current plugin directory outside the web root.
+   - Install with `wp plugin install <zip> --force`. Do not change activation.
+   - Confirm the version.
+   - Request the network front page and three site front pages. Confirm HTTP 200 and no PHP notices.
+   - Send the owner one test URL of a page that uses the plugin. Add the admin URL of its settings or editor screen, the backup path and the rollback command.
+
+   Stop. The owner gives a once-over and says "ok". On "not ok", roll the demo back and return to the fix. Only after "ok" does the owner upload to wordpress.org.
+8. **The owner uploads to wordpress.org.** Today the owner copies the contents of `dist/<slug>/` into the local SVN `trunk/` and commits by hand. [Issue #56](https://github.com/siteorigin/plugin-build/issues/56) will automate the copy. It comes after every plugin is on this branch.
+9. **Finish the release.** Wait until the owner confirms the upload. Then:
    - Run `git flow release finish -m "X.Y.Z" X.Y.Z`.
    - Push `develop`, `master` and the tag together: `git push --atomic origin develop master X.Y.Z`.
    - Confirm that `master` is not behind `develop` on GitHub: `gh api repos/siteorigin/<repo>/compare/develop...master --jq .behind_by` must print `0`.
    - Create the GitHub release on the tag, in the repository's existing format: the title is `X.Y.Z` and the body is the changelog lines for X.Y.Z. Use `gh release create X.Y.Z --title "X.Y.Z" --notes-file <file>`.
-9. **Rules.**
+10. **Rules.**
    - Never hand-merge, cherry-pick or rebase around git flow.
    - Never commit `docs/plans/`.
    - Never add AI attribution to a commit, tag, release or PR.
