@@ -47,6 +47,8 @@ Release task usage:
 npm run build:release --release=1.2.3
 ```
 
+To release a plugin, follow the [Release procedure](#release-procedure). It includes this build.
+
 The development build task includes:
 
 1. Initial compilation of LESS/SASS files to CSS.
@@ -84,6 +86,42 @@ npx cross-env gulp updateGoogleFontsTask --apiKey=YOUR_API_KEY
 ```
 
 The Google Fonts task will require an update to the build-config file in each plugin to specify the name and location of the fonts file.
+
+## Release procedure
+Follow these steps in order to release a plugin. A person or an agent can follow them. `X.Y.Z` is the new version. `<slug>` is the `slug` in `build-config.js`. Run the git commands in the plugin folder.
+
+1. **Check the preconditions.**
+   - You are on `develop`.
+   - `git status` shows a clean tree.
+   - `develop` is equal to `origin/develop`. Run `git fetch` first, then `git rev-parse develop origin/develop` must print the same hash twice.
+   - Find the last release with `git tag | sort -V | tail -1`.
+   - The plugin's tests pass.
+2. **Start the release.** Run `git flow release start X.Y.Z`. We use AVH git flow. Tags have no `v` prefix.
+3. **Write the changelog.** Edit `readme.txt` and `changelog.txt`. Add the entry for X.Y.Z, in the same format as the entries below it (`= X.Y.Z – DD Month YYYY =`). Write it against the last release:
+   - Say what changed for a user who upgrades from the last release.
+   - Work that was built and repaired in this cycle is one "Added" line. That bug never reached a user.
+   - Collapse internal history. Refactors, review findings and repair steps do not go in.
+   - Block, widget and addon names are proper nouns: "the Image Widget", "the Group block".
+   - Raise "Tested up to" in `readme.txt` if needed.
+
+   Do NOT commit.
+4. **HUMAN GATE. Stop here.** The owner reads `git diff` in the repository. The owner edits the files in place if needed. Then the owner says "commit". Nothing is committed, built, tagged or pushed before that.
+5. **Commit the changelog.** Make one commit on the release branch. Use the repository's style, for example `Update changelog for X.Y.Z`.
+6. **Build the release package.** In the plugin's `build/` folder, run `npm run build:release --release=X.Y.Z`. The zip is `dist/<slug>.X.Y.Z.zip`. The unzipped release is `dist/<slug>/`. Then:
+   - Record the zip's SHA-256: `shasum -a 256 dist/<slug>.X.Y.Z.zip`.
+   - Confirm that the zip has X.Y.Z in the plugin header `Version:`, in the version constant (`define( '..._VERSION', 'X.Y.Z' )`) and in the readme `Stable tag:`. Use `unzip -p` to read these files from the zip.
+   - Confirm that the zip has no `tests/`, `.github/` or `docs/plans/` files. `unzip -l dist/<slug>.X.Y.Z.zip | grep -E '/(tests|\.github|docs/plans)/'` must print nothing.
+7. **The owner uploads to wordpress.org.** Today the owner copies the contents of `dist/<slug>/` into the local SVN `trunk/` and commits by hand. [Issue #56](https://github.com/siteorigin/plugin-build/issues/56) will automate the copy. It comes after every plugin is on this branch.
+8. **Finish the release.** Wait until the owner confirms the upload. Then:
+   - Run `git flow release finish -m "X.Y.Z" X.Y.Z`.
+   - Push `develop`, `master` and the tag together: `git push --atomic origin develop master X.Y.Z`.
+   - Confirm that `master` is not behind `develop` on GitHub: `gh api repos/siteorigin/<repo>/compare/develop...master --jq .behind_by` must print `0`.
+   - Create the GitHub release on the tag, in the repository's existing format: the title is `X.Y.Z` and the body is the changelog lines for X.Y.Z. Use `gh release create X.Y.Z --title "X.Y.Z" --notes-file <file>`.
+9. **Rules.**
+   - Never hand-merge, cherry-pick or rebase around git flow.
+   - Never commit `docs/plans/`.
+   - Never add AI attribution to a commit, tag, release or PR.
+   - Source keeps its dev version markers (`Version: dev`, `'dev'` in the version constant, `Stable tag: trunk`). The build sets the version.
 
 ## Gulp 5 Migration Notes
 
